@@ -8,13 +8,13 @@ import { MusicPlayer } from '@/components/MusicPlayer';
 import { UserDashboard } from '@/components/UserDashboard';
 import { Song, User } from '@/lib/types';
 import { YTMusicAPI, StorageKeys, getStorageData } from '@/lib/ytmusic-api';
-import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'wouter';
 
 const Index = () => {
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [trendingSongs, setTrendingSongs] = useState<Song[]>([]);
   const [currentBalance, setCurrentBalance] = useState(0);
-  const navigate = useNavigate();
+  const [location, setLocation] = useLocation();
 
   useEffect(() => {
     // Load user balance
@@ -80,7 +80,7 @@ const Index = () => {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => navigate('/admin')}
+                onClick={() => setLocation('/admin')}
                 className="border-border"
               >
                 <Settings className="h-4 w-4 mr-2" />
