@@ -4,10 +4,11 @@
 A music streaming reward application that allows users to listen to music and earn rewards. Users can discover trending songs, play music, and accumulate earnings that can be withdrawn through an admin dashboard.
 
 ## Recent Changes
-- **July 21, 2025**: Vercel Deployment Configuration
+- **July 21, 2025**: Vercel Deployment Configuration & Reward Adjustment
   - Setup vercel.json dengan konfigurasi lengkap untuk deployment
   - Buat API handler terpisah di /api/index.ts untuk Vercel
   - Tambah build script khusus untuk Vercel deployment
+  - Ubah reward system dari 50 Rp menjadi 5 Rp per 30 detik
   - Documentation lengkap di README.md
   - Semua fitur tetap berfungsi di kedua environment (Replit & Vercel)
 - **July 21, 2025**: Enhanced Admin Features & Search Improvements
@@ -55,7 +56,7 @@ A music streaming reward application that allows users to listen to music and ea
 ## Key Features
 - Music discovery with enhanced search (50 songs per search)
 - Admin-controlled trending/featured songs
-- Music player with earnings system (50 Rp per 30 seconds)
+- Music player with earnings system (5 Rp per 30 seconds)
 - User dashboard with balance tracking
 - Admin dashboard for withdrawal request management
 - Admin music management (add, remove, reorder featured songs)
@@ -72,7 +73,7 @@ A music streaming reward application that allows users to listen to music and ea
 - Uses real YouTube Music API via ytmusicapi Python library
 - Python backend service provides authentic music data
 - Express API routes proxy requests to Python ytmusicapi service
-- Earnings system awards 50 Rp after 30 seconds of listening
+- Earnings system awards 5 Rp after 30 seconds of listening
 - Admin panel accessible only via direct URL /admin
 - Enhanced balance display with gradient styling
 - Responsive design with Tailwind CSS

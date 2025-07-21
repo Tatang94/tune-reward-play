@@ -125,7 +125,7 @@ const Index = () => {
                       </h3>
                       <p className="text-muted-foreground text-xs">{song.artist}</p>
                       <div className="mt-2 text-xs text-success font-medium">
-                        +Rp 50 / 30s
+                        +Rp 5 / 30s
                       </div>
                     </Card>
                   ))}

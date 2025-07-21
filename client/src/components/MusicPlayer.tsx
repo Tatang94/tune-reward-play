@@ -69,11 +69,11 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
       songsPlayed: 0
     });
 
-    const newBalance = userData.balance + 50;
+    const newBalance = userData.balance + 5;
     const updatedUser = {
       ...userData,
       balance: newBalance,
-      totalEarnings: userData.totalEarnings + 50,
+      totalEarnings: userData.totalEarnings + 5,
       songsPlayed: userData.songsPlayed + 1
     };
 
@@ -82,7 +82,7 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
 
     toast({
       title: "Selamat! 🎉",
-      description: "Anda mendapat Rp 50 karena telah mendengarkan lagu selama 30 detik!",
+      description: "Anda mendapat Rp 5 karena telah mendengarkan lagu selama 30 detik!",
       className: "bg-success text-success-foreground"
     });
   };
@@ -212,7 +212,7 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
       {currentTime < 30 && (
         <div className="mt-4 p-3 bg-secondary/50 rounded-lg">
           <div className="flex justify-between text-sm mb-2">
-            <span>Dengarkan {30 - Math.floor(currentTime)} detik lagi untuk mendapat Rp 50</span>
+            <span>Dengarkan {30 - Math.floor(currentTime)} detik lagi untuk mendapat Rp 5</span>
           </div>
           <div className="w-full bg-border rounded-full h-2">
             <div 

@@ -6,7 +6,7 @@ Aplikasi streaming musik dengan sistem reward yang memungkinkan pengguna mendeng
 
 - ✅ Pencarian musik dengan hasil hingga 50 lagu
 - ✅ Sistem musik trending yang dapat diatur admin
-- ✅ Music player dengan sistem reward (50 Rp per 30 detik)
+- ✅ Music player dengan sistem reward (5 Rp per 30 detik)
 - ✅ Dashboard pengguna dengan tracking saldo
 - ✅ Dashboard admin untuk manajemen penarikan dana
 - ✅ Manajemen musik admin (tambah, hapus, urutkan featured songs)
