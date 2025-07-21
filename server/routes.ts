@@ -113,7 +113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Query parameter required" });
       }
       
-      const result = await callPythonService("search", query, limit);
+      const result = await callPythonService("search", query, String(limit));
       res.json(result);
     } catch (error) {
       console.error("Search error:", error);
@@ -124,7 +124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ytmusic/charts", async (req, res) => {
     try {
       const { country = "ID" } = req.query;
-      const result = await callPythonService("charts", country);
+      const result = await callPythonService("charts", String(country));
       res.json(result);
     } catch (error) {
       console.error("Charts error:", error);

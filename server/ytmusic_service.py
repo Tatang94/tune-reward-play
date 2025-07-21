@@ -119,7 +119,7 @@ class YTMusicService:
             return artists[0].get("name", "Unknown Artist")
         return "Unknown Artist"
     
-    def _get_duration_seconds(self, duration: str) -> int:
+    def _get_duration_seconds(self, duration: str | None) -> int:
         """Convert duration string (MM:SS) to seconds"""
         if not duration:
             return 0
