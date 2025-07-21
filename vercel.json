@@ -10,6 +10,10 @@
       }
     },
     {
+      "src": "server/ytmusic_service.py",
+      "use": "@vercel/python"
+    },
+    {
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
