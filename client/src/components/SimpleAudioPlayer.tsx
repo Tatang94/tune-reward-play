@@ -102,7 +102,7 @@ export const SimpleAudioPlayer = ({
           </div>
           <div>
             <h3 className="font-semibold text-lg mb-1">Pemutar Musik</h3>
-            <p className="text-muted-foreground">Pilih lagu dari tab "Temukan Musik" untuk mulai mendengarkan</p>
+            <p className="text-muted-foreground">Admin belum mengatur lagu untuk diputar. Hubungi admin untuk menambah musik.</p>
           </div>
         </div>
       </Card>

@@ -9,7 +9,6 @@ import { Song, User } from '@/lib/types';
 import { YTMusicAPI, StorageKeys, getStorageData } from '@/lib/ytmusic-api';
 
 const Index = () => {
-  const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [trendingSongs, setTrendingSongs] = useState<Song[]>([]);
   const [currentBalance, setCurrentBalance] = useState(0);
 
@@ -37,17 +36,9 @@ const Index = () => {
     }
   };
 
-  const handleSongSelect = (song: Song) => {
-    setCurrentSong(song);
-  };
-
   const handleSongComplete = () => {
-    // Auto-play next trending song if available
-    if (trendingSongs.length > 0) {
-      const currentIndex = trendingSongs.findIndex(s => s.id === currentSong?.id);
-      const nextIndex = (currentIndex + 1) % trendingSongs.length;
-      setCurrentSong(trendingSongs[nextIndex]);
-    }
+    // Song completed - user can play again
+    console.log('Song completed');
   };
 
   const handleEarningsUpdate = (newBalance: number) => {
@@ -94,47 +85,9 @@ const Index = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="player" className="space-y-6 mt-6">
-            {/* Trending Songs Section in Player Tab */}
-            {trendingSongs.length > 0 && (
-              <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
-                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  Pilih Lagu untuk Diputar
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {trendingSongs.map((song) => (
-                    <Card 
-                      key={song.id}
-                      className="p-4 bg-background/50 border-border/50 hover:border-primary/50 transition-all duration-300 cursor-pointer group"
-                      onClick={() => handleSongSelect(song)}
-                    >
-                      <div className="relative mb-3">
-                        <img 
-                          src={song.thumbnail} 
-                          alt={song.title}
-                          className="w-full h-32 object-cover rounded-lg"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-all duration-300 flex items-center justify-center">
-                          <Music className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        </div>
-                      </div>
-                      <h3 className="font-semibold text-sm group-hover:text-primary transition-colors">
-                        {song.title}
-                      </h3>
-                      <p className="text-muted-foreground text-xs">{song.artist}</p>
-                      <div className="mt-2 text-xs text-success font-medium">
-                        +Rp 5 / 30s
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </Card>
-            )}
-            
-            {/* Audio Player */}
+          <TabsContent value="player" className="mt-6">
             <SimpleAudioPlayer 
-              currentSong={currentSong}
+              currentSong={trendingSongs.length > 0 ? trendingSongs[0] : null}
               onSongComplete={handleSongComplete}
               onEarningsUpdate={handleEarningsUpdate}
             />
