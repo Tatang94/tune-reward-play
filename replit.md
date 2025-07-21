@@ -4,6 +4,12 @@
 A music streaming reward application that allows users to listen to music and earn rewards. Users can discover trending songs, play music, and accumulate earnings that can be withdrawn through an admin dashboard.
 
 ## Recent Changes
+- **July 21, 2025**: Vercel Deployment Configuration
+  - Setup vercel.json dengan konfigurasi lengkap untuk deployment
+  - Buat API handler terpisah di /api/index.ts untuk Vercel
+  - Tambah build script khusus untuk Vercel deployment
+  - Documentation lengkap di README.md
+  - Semua fitur tetap berfungsi di kedua environment (Replit & Vercel)
 - **July 21, 2025**: Enhanced Admin Features & Search Improvements
   - Pencarian musik ditingkatkan dari 20 menjadi 50 lagu
   - Admin dapat mengelola musik trending sendiri melalui dashboard
@@ -71,3 +77,11 @@ A music streaming reward application that allows users to listen to music and ea
 - Enhanced balance display with gradient styling
 - Responsive design with Tailwind CSS
 - TypeScript throughout for type safety
+
+## Deployment Configuration
+- **Replit**: Ready dengan workflow otomatis di port 5000
+- **Vercel**: Konfigurasi lengkap dengan serverless functions
+  - Frontend build ke /dist untuk static hosting
+  - API endpoints di /api/index.ts sebagai Vercel function
+  - Python ytmusicapi tetap berfungsi di Vercel environment
+  - Database PostgreSQL ready untuk produksi
