@@ -4,6 +4,12 @@
 A music streaming reward application that allows users to listen to music and earn rewards. Users can discover trending songs, play music, and accumulate earnings that can be withdrawn through an admin dashboard.
 
 ## Recent Changes
+- **July 21, 2025**: Enhanced Balance Display and YouTube Music Integration
+  - Improved balance display styling with larger text and gradient background
+  - Integrated real YouTube Music API using ytmusicapi Python library
+  - Created Python service for YouTube Music data fetching
+  - Added Express API routes for search, charts, and song details
+  - Removed admin button from main header per user request
 - **July 20, 2025**: Migrated from Lovable to Replit environment
   - Converted routing from react-router-dom to wouter
   - Set up proper QueryClient configuration
@@ -34,8 +40,11 @@ A music streaming reward application that allows users to listen to music and ea
 - Simple, clean UI with card-based layouts
 
 ## Technical Notes
-- Uses mock data for music API (placeholder for real YouTube Music integration)
+- Uses real YouTube Music API via ytmusicapi Python library
+- Python backend service provides authentic music data
+- Express API routes proxy requests to Python ytmusicapi service
 - Earnings system awards 50 Rp after 30 seconds of listening
-- Admin panel for managing withdrawal requests
+- Admin panel accessible only via direct URL /admin
+- Enhanced balance display with gradient styling
 - Responsive design with Tailwind CSS
 - TypeScript throughout for type safety

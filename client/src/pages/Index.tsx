@@ -70,9 +70,9 @@ const Index = () => {
               </div>
             </div>
             
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground">Saldo Anda</p>
-              <p className="font-bold text-success">Rp {currentBalance.toLocaleString('id-ID')}</p>
+            <div className="text-right bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 px-4 py-2 rounded-lg border border-green-200 dark:border-green-800">
+              <p className="text-sm font-medium text-green-700 dark:text-green-300">Saldo Anda</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">Rp {currentBalance.toLocaleString('id-ID')}</p>
             </div>
           </div>
         </div>

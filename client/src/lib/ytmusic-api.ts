@@ -1,74 +1,77 @@
 import { Song } from './types';
 
-// Mock data for development - replace with actual ytmusicapi integration
-const mockSongs: Song[] = [
-  {
-    id: '1',
-    title: 'Blinding Lights',
-    artist: 'The Weeknd',
-    duration: 200,
-    thumbnail: 'https://i.ytimg.com/vi/4NRXx6U8ABQ/maxresdefault.jpg',
-    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
-  },
-  {
-    id: '2',
-    title: 'Shape of You',
-    artist: 'Ed Sheeran',
-    duration: 235,
-    thumbnail: 'https://i.ytimg.com/vi/JGwWNGJdvx8/maxresdefault.jpg',
-    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3'
-  },
-  {
-    id: '3',
-    title: 'Bad Guy',
-    artist: 'Billie Eilish',
-    duration: 194,
-    thumbnail: 'https://i.ytimg.com/vi/DyDfgMOUjCI/maxresdefault.jpg',
-    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3'
-  },
-  {
-    id: '4',
-    title: 'Watermelon Sugar',
-    artist: 'Harry Styles',
-    duration: 174,
-    thumbnail: 'https://i.ytimg.com/vi/E07s5ZYygMg/maxresdefault.jpg',
-    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3'
-  },
-  {
-    id: '5',
-    title: 'Levitating',
-    artist: 'Dua Lipa',
-    duration: 203,
-    thumbnail: 'https://i.ytimg.com/vi/TUVcZfQe-Kw/maxresdefault.jpg',
-    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3'
-  }
-];
-
+// YouTube Music API integration using server-side ytmusicapi
 export class YTMusicAPI {
-  // Mock search function - will be replaced with actual ytmusicapi calls
+  private static readonly BASE_URL = '/api/ytmusic';
+
+  // Search songs using real YouTube Music API
   static async searchSongs(query: string): Promise<Song[]> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
     if (!query.trim()) return [];
     
-    // Filter mock songs based on query
-    return mockSongs.filter(song => 
-      song.title.toLowerCase().includes(query.toLowerCase()) ||
-      song.artist.toLowerCase().includes(query.toLowerCase())
-    );
+    try {
+      const response = await fetch(`${this.BASE_URL}/search?q=${encodeURIComponent(query)}&type=songs&limit=10`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return data.songs || [];
+    } catch (error) {
+      console.error('Error searching songs:', error);
+      throw new Error('Gagal mencari lagu. Pastikan koneksi internet stabil.');
+    }
   }
 
-  // Get trending songs
+  // Get trending songs from YouTube Music charts
   static async getTrendingSongs(): Promise<Song[]> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return mockSongs.slice(0, 3);
+    try {
+      const response = await fetch(`${this.BASE_URL}/charts`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return data.songs?.slice(0, 6) || [];
+    } catch (error) {
+      console.error('Error fetching trending songs:', error);
+      throw new Error('Gagal memuat lagu trending. Pastikan koneksi internet stabil.');
+    }
   }
 
-  // Get song by ID
+  // Get song details by ID
   static async getSongById(id: string): Promise<Song | null> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return mockSongs.find(song => song.id === id) || null;
+    try {
+      const response = await fetch(`${this.BASE_URL}/song/${id}`);
+      
+      if (!response.ok) {
+        return null;
+      }
+      
+      const data = await response.json();
+      return data.song || null;
+    } catch (error) {
+      console.error('Error fetching song details:', error);
+      return null;
+    }
+  }
+
+  // Get song stream URL
+  static async getSongStreamUrl(videoId: string): Promise<string | null> {
+    try {
+      const response = await fetch(`${this.BASE_URL}/stream/${videoId}`);
+      
+      if (!response.ok) {
+        return null;
+      }
+      
+      const data = await response.json();
+      return data.streamUrl || null;
+    } catch (error) {
+      console.error('Error getting stream URL:', error);
+      return null;
+    }
   }
 }
 
