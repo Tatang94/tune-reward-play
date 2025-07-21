@@ -70,12 +70,11 @@ const Index = () => {
               </div>
             </div>
             
-            <div className="relative bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 px-6 py-4 rounded-2xl shadow-lg">
-              <div className="absolute inset-0 bg-white/10 rounded-2xl backdrop-blur-sm"></div>
+            <div className="relative bg-gradient-to-r from-emerald-500 to-green-500 px-4 py-3 rounded-xl shadow-md">
+              <div className="absolute inset-0 bg-white/10 rounded-xl backdrop-blur-sm"></div>
               <div className="relative z-10 text-center">
-                <p className="text-xs font-medium text-white/80 uppercase tracking-wider">Saldo Anda</p>
-                <p className="text-3xl font-bold text-white mt-1">Rp {currentBalance.toLocaleString('id-ID')}</p>
-                <div className="w-12 h-0.5 bg-white/40 rounded-full mx-auto mt-2"></div>
+                <p className="text-xs font-medium text-white/80 tracking-wide">Saldo Anda</p>
+                <p className="text-xl font-bold text-white">Rp {currentBalance.toLocaleString('id-ID')}</p>
               </div>
             </div>
           </div>
