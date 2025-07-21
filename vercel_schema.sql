@@ -1,5 +1,5 @@
--- MusicReward App - Supabase Database Schema
--- Copy dan jalankan script ini di Supabase SQL Editor
+-- MusicReward App - Vercel Postgres Database Schema
+-- Schema untuk Vercel Postgres deployment - Clean setup tanpa data demo
 
 -- 1. Tabel Users untuk sistem user management
 CREATE TABLE IF NOT EXISTS users (
@@ -66,22 +66,13 @@ CREATE INDEX IF NOT EXISTS idx_withdraw_requests_user_id ON withdraw_requests(us
 CREATE INDEX IF NOT EXISTS idx_featured_songs_active ON featured_songs(is_active);
 CREATE INDEX IF NOT EXISTS idx_featured_songs_order ON featured_songs(display_order);
 
--- Insert default admin account (password: "audio" di-hash dengan bcrypt)
--- Password hash untuk "audio" adalah: $2b$10$rJm8FZQQQpZ1qXqNlOQ1Ee8YvYvF9xqXqZ1qXqNlOQ1Ee8YvYvF9x
-INSERT INTO admins (username, password) 
-VALUES ('admin', '$2b$10$rJm8FZQQQpZ1qXqNlOQ1Ee8YvYvF9xqXqZ1qXqNlOQ1Ee8YvYvF9x')
-ON CONFLICT (username) DO NOTHING;
+-- Default admin account akan dibuat otomatis oleh aplikasi pada first deploy
+-- Username: admin, Password: audio
 
--- Catatan: Tidak ada data demo featured songs
--- Admin dapat menambahkan musik melalui dashboard admin setelah login
-
--- Cleanup old sessions (optional, untuk maintenance)
+-- Cleanup old sessions (maintenance)
 DELETE FROM admin_sessions WHERE expires_at < NOW();
 
 -- Verify tables created successfully
 SELECT table_name FROM information_schema.tables 
 WHERE table_schema = 'public' 
 AND table_name IN ('users', 'admins', 'admin_sessions', 'withdraw_requests', 'admin_settings', 'featured_songs');
-
--- Verify admin account created
-SELECT 'Admin accounts created:' as info, count(*) as count FROM admins;

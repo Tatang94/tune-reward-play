@@ -72,7 +72,7 @@ export async function initializeVercelDatabase() {
       );
     `;
 
-    console.log("Vercel database tables initialized successfully");
+    console.log("Vercel database tables initialized successfully - clean setup without demo data");
   } catch (error) {
     console.error("Error initializing Vercel database:", error);
     throw error;

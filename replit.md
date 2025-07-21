@@ -12,6 +12,7 @@ A music streaming reward application that allows users to listen to music and ea
   - Dokumentasi lengkap setup Vercel di VERCEL_SETUP.md
   - Database tables akan dibuat otomatis saat deploy ke Vercel
   - Admin account (admin/audio) auto-generated pada first deploy
+  - Clean setup tanpa data demo - admin mengelola musik dari nol
 - **July 21, 2025**: Fixed Vercel Configuration & YouTube Integration
   - Perbaiki vercel.json dengan routing SPA yang tepat untuk mengatasi tampilan kode mentah
   - Integrasi YouTube player untuk streaming musik asli

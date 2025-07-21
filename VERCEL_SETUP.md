@@ -60,11 +60,12 @@
 - PostgreSQL dengan auto-scaling
 - Connection pooling otomatis
 - Backup dan restore otomatis
+- Clean setup tanpa data demo - admin mengelola sendiri
 
 ✅ **Application Features**:
 - Admin authentication dengan credentials: `admin/audio`
 - YouTube Music integration (ytmusicapi)
-- Featured songs management
+- Featured songs management (mulai dari kosong)
 - Withdrawal requests management
 - Responsive design
 
