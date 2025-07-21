@@ -72,6 +72,74 @@ function callPythonService(...args: string[]): Promise<any> {
   });
 }
 
+// Audio streaming endpoints for Vercel
+async function handleAudioStream(req: VercelRequest, res: VercelResponse, videoId: string) {
+  try {
+    console.log(`Getting stream URL for videoId: ${videoId}`);
+    
+    const result = await callPythonService("stream", videoId);
+    
+    if (result.stream) {
+      res.json(result.stream);
+    } else {
+      res.status(404).json({ error: "Song not found or no stream available" });
+    }
+  } catch (error) {
+    console.error("Stream URL error:", error);
+    res.status(500).json({ 
+      error: "Failed to get stream URL", 
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+async function handleAudioPlay(req: VercelRequest, res: VercelResponse, videoId: string) {
+  try {
+    console.log(`Proxying audio stream for videoId: ${videoId}`);
+    
+    // Get stream URL from ytmusicapi
+    const result = await callPythonService("stream", videoId);
+    
+    if (!result.stream || !result.stream.streamUrl) {
+      return res.status(404).json({ error: "Stream not found" });
+    }
+    
+    const streamUrl = result.stream.streamUrl;
+    const mimeType = result.stream.mimeType || "audio/mp4";
+    
+    // Set appropriate headers
+    res.setHeader("Content-Type", mimeType);
+    res.setHeader("Accept-Ranges", "bytes");
+    res.setHeader("Cache-Control", "no-cache");
+    
+    // Handle range requests for audio streaming
+    const range = req.headers.range;
+    if (range) {
+      res.setHeader("Content-Range", "bytes */");
+      res.status(206);
+    }
+    
+    // Proxy the audio stream
+    const fetch = require('node-fetch');
+    const response = await fetch(streamUrl, {
+      headers: range ? { Range: range } : {}
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch audio: ${response.status}`);
+    }
+    
+    response.body.pipe(res);
+    
+  } catch (error) {
+    console.error("Audio proxy error:", error);
+    res.status(500).json({ 
+      error: "Failed to stream audio", 
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
 // Initialize on startup
 initializeVercelApp().catch(console.error);
 
@@ -251,48 +319,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.json(result);
     }
     
-    // Audio streaming endpoint for Vercel
+    // Audio streaming endpoint for Vercel using ytmusicapi
     if (pathname.startsWith('/api/audio/stream/') && method === 'GET') {
       const videoId = pathname.split('/').pop();
-      
-      if (!videoId || !ytdl.validateID(videoId)) {
-        return res.status(400).json({ error: "Invalid video ID" });
+      if (!videoId) {
+        return res.status(400).json({ error: "Video ID required" });
       }
-
-      try {
-        // Get video info first
-        const info = await ytdl.getInfo(videoId);
-        const title = info.videoDetails.title;
-        
-        // Set response headers for audio streaming
-        res.setHeader('Content-Type', 'audio/webm');
-        res.setHeader('Content-Disposition', `inline; filename="${title}.webm"`);
-        res.setHeader('Accept-Ranges', 'bytes');
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        
-        // Stream audio with best quality
-        const audioStream = ytdl(videoId, {
-          filter: 'audioonly',
-          quality: 'highestaudio'
-        });
-        
-        // Pipe the audio stream to response
-        audioStream.pipe(res);
-        
-        // Handle stream errors
-        audioStream.on('error', (error) => {
-          console.error('Audio stream error:', error);
-          if (!res.headersSent) {
-            res.status(500).json({ error: "Failed to stream audio" });
-          }
-        });
-        
-        return; // Don't proceed to default 404
-        
-      } catch (error) {
-        console.error("Stream audio error:", error);
-        return res.status(500).json({ error: "Failed to stream audio" });
+      return handleAudioStream(req, res, videoId);
+    }
+    
+    if (pathname.startsWith('/api/audio/play/') && method === 'GET') {
+      const videoId = pathname.split('/').pop();
+      if (!videoId) {
+        return res.status(400).json({ error: "Video ID required" });
       }
+      return handleAudioPlay(req, res, videoId);
     }
     
     // Default 404

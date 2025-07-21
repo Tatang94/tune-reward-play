@@ -224,26 +224,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Audio info via Python FastAPI service
-  app.get("/api/audio/info/:videoId", async (req, res) => {
+  // Get streaming URL for a song
+  app.get("/api/audio/stream/:videoId", async (req, res) => {
     try {
       const { videoId } = req.params;
-      console.log(`Getting audio info for videoId: ${videoId}`);
+      console.log(`Getting stream URL for videoId: ${videoId}`);
       
-      // Get info from Python FastAPI service
-      const response = await fetch(`http://localhost:8001/info/${videoId}`);
+      const result = await callPythonService("stream", videoId);
       
-      if (!response.ok) {
-        throw new Error(`Python service error: ${response.status}`);
+      if (result.stream) {
+        res.json(result.stream);
+      } else {
+        res.status(404).json({ error: "Song not found or no stream available" });
+      }
+    } catch (error) {
+      console.error("Stream URL error:", error);
+      res.status(500).json({ 
+        error: "Failed to get stream URL", 
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Proxy streaming audio to avoid CORS issues
+  app.get("/api/audio/play/:videoId", async (req, res) => {
+    try {
+      const { videoId } = req.params;
+      console.log(`Proxying audio stream for videoId: ${videoId}`);
+      
+      // Get stream URL from ytmusicapi
+      const result = await callPythonService("stream", videoId);
+      
+      if (!result.stream || !result.stream.streamUrl) {
+        return res.status(404).json({ error: "Stream not found" });
       }
       
-      const data = await response.json();
-      res.json(data);
+      const streamUrl = result.stream.streamUrl;
+      const mimeType = result.stream.mimeType || "audio/mp4";
+      
+      // Set appropriate headers
+      res.setHeader("Content-Type", mimeType);
+      res.setHeader("Accept-Ranges", "bytes");
+      res.setHeader("Cache-Control", "no-cache");
+      
+      // Handle range requests for audio streaming
+      const range = req.headers.range;
+      if (range) {
+        res.setHeader("Content-Range", "bytes */");
+        res.status(206);
+      }
+      
+      // Proxy the audio stream  
+      const fetch = require('node-fetch');
+      const response = await fetch(streamUrl, {
+        headers: range ? { Range: range } : {}
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch audio: ${response.status}`);
+      }
+      
+      response.body?.pipe(res);
       
     } catch (error) {
-      console.error("Audio info error:", error);
+      console.error("Audio proxy error:", error);
       res.status(500).json({ 
-        error: "Failed to get audio info", 
+        error: "Failed to stream audio", 
         details: error instanceof Error ? error.message : String(error)
       });
     }

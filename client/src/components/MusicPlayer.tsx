@@ -29,8 +29,8 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
     setCurrentTime(0);
     setIsPlaying(false);
 
-    // Set the audio source to our streaming endpoint
-    audioRef.current.src = `/api/audio/stream/${currentSong.id}`;
+    // Set the audio source to our proxied streaming endpoint
+    audioRef.current.src = `/api/audio/play/${currentSong.id}`;
     audioRef.current.load();
   }, [currentSong]);
 

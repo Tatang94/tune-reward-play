@@ -95,6 +95,41 @@ class YTMusicService:
             print(f"Error getting charts: {e}", file=sys.stderr)
             return []
     
+    def get_song_stream_url(self, video_id: str) -> Dict[str, Any] | None:
+        """Get streaming URL for a song using ytmusicapi"""
+        try:
+            # Get song info first
+            song_info = self.ytmusic.get_song(video_id)
+            if not song_info:
+                return None
+            
+            # Get streaming data
+            streaming_data = song_info.get("streamingData", {})
+            adaptive_formats = streaming_data.get("adaptiveFormats", [])
+            
+            # Find best audio-only format
+            best_audio = None
+            for format_item in adaptive_formats:
+                if format_item.get("mimeType", "").startswith("audio/") and format_item.get("url"):
+                    if not best_audio or format_item.get("bitrate", 0) > best_audio.get("bitrate", 0):
+                        best_audio = format_item
+            
+            if best_audio:
+                return {
+                    "id": video_id,
+                    "title": song_info.get("title", ""),
+                    "artist": self._get_artist_name(song_info.get("artists", [])),
+                    "duration": self._get_duration_seconds(song_info.get("duration")),
+                    "thumbnail": self._get_thumbnail_url(song_info.get("thumbnails", [])),
+                    "streamUrl": best_audio["url"],
+                    "mimeType": best_audio.get("mimeType", "audio/mp4"),
+                    "bitrate": best_audio.get("bitrate", 0)
+                }
+            return None
+        except Exception as e:
+            print(f"Error getting stream URL: {e}", file=sys.stderr)
+            return None
+    
     def get_song_details(self, video_id: str) -> Dict[str, Any] | None:
         """Get detailed information about a specific song"""
         try:
@@ -173,6 +208,14 @@ def main():
             video_id = sys.argv[2]
             result = service.get_song_details(video_id)
             print(json.dumps({"song": result}))
+        
+        elif command == "stream":
+            if len(sys.argv) < 3:
+                print(json.dumps({"error": "Video ID required"}))
+                sys.exit(1)
+            video_id = sys.argv[2]
+            result = service.get_song_stream_url(video_id)
+            print(json.dumps({"stream": result}))
         
         else:
             print(json.dumps({"error": f"Unknown command: {command}"}))
