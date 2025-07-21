@@ -2,8 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { vercelStorage } from "../server/storage-vercel";
 import { initializeVercelDatabase } from "../server/db-vercel";
 import bcrypt from "bcrypt";
-import { spawn } from "child_process";
-import path from "path";
+import fetch from "node-fetch";
 
 
 // Initialize Vercel database and default admin account
@@ -36,41 +35,7 @@ async function initializeVercelApp() {
 
 // No authentication required for admin routes in Vercel
 
-// Helper function to call Python YTMusic service
-function callPythonService(...args: string[]): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const pythonScript = path.join(process.cwd(), "server", "ytmusic_service.py");
-    const python = spawn("python3", [pythonScript, ...args]);
-    
-    let stdout = "";
-    let stderr = "";
-    
-    python.stdout.on("data", (data) => {
-      stdout += data.toString();
-    });
-    
-    python.stderr.on("data", (data) => {
-      stderr += data.toString();
-    });
-    
-    python.on("close", (code) => {
-      if (code === 0) {
-        try {
-          const result = JSON.parse(stdout);
-          resolve(result);
-        } catch (error) {
-          reject(new Error("Failed to parse Python service response"));
-        }
-      } else {
-        reject(new Error(`Python service failed with code ${code}: ${stderr}`));
-      }
-    });
-    
-    python.on("error", (error) => {
-      reject(error);
-    });
-  });
-}
+// Music service placeholder
 
 
 
@@ -209,54 +174,87 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
     
-    // YouTube Music API endpoints - using featured songs only
+    // YouTube Data API v3 endpoints
+    const YOUTUBE_API_KEY = 'AIzaSyCdgmEsPW59-U4bNKj-u-FSHHVaFfFO_VM';
+    
     if (pathname === '/api/ytmusic/search' && method === 'GET') {
       const query = req.query?.q;
-      const limit = parseInt(String(req.query?.limit || "10"));
+      const limit = req.query?.limit || "25";
       
       if (!query || typeof query !== 'string') {
         return res.status(400).json({ error: "Query parameter required" });
       }
       
-      // Search in featured songs only
-      const featuredSongs = await vercelStorage.getFeaturedSongs();
-      const searchTerm = query.toLowerCase();
-      
-      const filteredSongs = featuredSongs
-        .filter(song => 
-          song.title.toLowerCase().includes(searchTerm) ||
-          song.artist.toLowerCase().includes(searchTerm)
-        )
-        .slice(0, limit)
-        .map(song => ({
-          id: song.videoId,
-          title: song.title,
-          artist: song.artist,
-          thumbnail: song.thumbnail,
-          duration: song.duration,
-          audioUrl: `https://www.youtube.com/watch?v=${song.videoId}`
-        }));
-      
-      return res.json({ songs: filteredSongs });
+      try {
+        // Search using YouTube Data API v3
+        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=${limit}&q=${encodeURIComponent(query + ' music')}&type=video&key=${YOUTUBE_API_KEY}`;
+        
+        const response = await fetch(searchUrl);
+        const data = await response.json();
+        
+        if (!response.ok) {
+          console.error('YouTube API Error:', data);
+          return res.status(500).json({ error: "Failed to search YouTube" });
+        }
+        
+        const songs = data.items?.map((item: any) => ({
+          id: item.id.videoId,
+          title: item.snippet.title,
+          artist: item.snippet.channelTitle,
+          thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || '',
+          duration: 180,
+          audioUrl: `https://www.youtube.com/watch?v=${item.id.videoId}`
+        })) || [];
+        
+        return res.json({ songs });
+      } catch (error) {
+        console.error("Search error:", error);
+        return res.status(500).json({ error: "Failed to search songs" });
+      }
     }
     
     if (pathname === '/api/ytmusic/charts' && method === 'GET') {
-      // Get admin-configured featured songs only
-      const featuredSongs = await vercelStorage.getFeaturedSongs();
-      
-      if (featuredSongs && featuredSongs.length > 0) {
-        const songs = featuredSongs.map(song => ({
-          id: song.videoId,
-          title: song.title,
-          artist: song.artist,
-          thumbnail: song.thumbnail,
-          duration: song.duration,
-          audioUrl: `https://www.youtube.com/watch?v=${song.videoId}`
-        }));
+      try {
+        // First try to get admin-configured featured songs
+        const featuredSongs = await vercelStorage.getFeaturedSongs();
         
-        return res.json({ songs });
-      } else {
-        return res.json({ songs: [] });
+        if (featuredSongs && featuredSongs.length > 0) {
+          const songs = featuredSongs.map(song => ({
+            id: song.videoId,
+            title: song.title,
+            artist: song.artist,
+            thumbnail: song.thumbnail,
+            duration: song.duration,
+            audioUrl: `https://www.youtube.com/watch?v=${song.videoId}`
+          }));
+          
+          return res.json({ songs });
+        } else {
+          // Fallback to popular music from YouTube
+          const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&q=lagu+indonesia+terpopuler+2025&type=video&order=relevance&key=${YOUTUBE_API_KEY}`;
+          
+          const response = await fetch(searchUrl);
+          const data = await response.json();
+          
+          if (!response.ok) {
+            console.error('YouTube API Error:', data);
+            return res.json({ songs: [] });
+          }
+          
+          const songs = data.items?.map((item: any) => ({
+            id: item.id.videoId,
+            title: item.snippet.title,
+            artist: item.snippet.channelTitle,
+            thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || '',
+            duration: 180,
+            audioUrl: `https://www.youtube.com/watch?v=${item.id.videoId}`
+          })) || [];
+          
+          return res.json({ songs });
+        }
+      } catch (error) {
+        console.error("Charts error:", error);
+        return res.status(500).json({ error: "Failed to get charts" });
       }
     }
     
@@ -266,31 +264,60 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: "Invalid video ID" });
       }
       
-      // Find song in featured songs
-      const featuredSongs = await vercelStorage.getFeaturedSongs();
-      const song = featuredSongs.find(s => s.videoId === videoId);
-      
-      if (song) {
-        return res.json({ 
-          song: {
-            id: song.videoId,
-            title: song.title,
-            artist: song.artist,
-            duration: song.duration,
-            thumbnail: song.thumbnail,
-            audioUrl: `https://www.youtube.com/watch?v=${song.videoId}`
-          }
-        });
-      } else {
+      try {
+        // First check in featured songs
+        const featuredSongs = await vercelStorage.getFeaturedSongs();
+        const featuredSong = featuredSongs.find(s => s.videoId === videoId);
+        
+        if (featuredSong) {
+          return res.json({ 
+            song: {
+              id: featuredSong.videoId,
+              title: featuredSong.title,
+              artist: featuredSong.artist,
+              duration: featuredSong.duration,
+              thumbnail: featuredSong.thumbnail,
+              audioUrl: `https://www.youtube.com/watch?v=${featuredSong.videoId}`
+            }
+          });
+        }
+        
+        // Get from YouTube Data API
+        const videoUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${YOUTUBE_API_KEY}`;
+        
+        const response = await fetch(videoUrl);
+        const data = await response.json();
+        
+        if (!response.ok || !data.items?.length) {
+          return res.json({ 
+            song: {
+              id: videoId,
+              title: "Song Not Found",
+              artist: "Unknown",
+              duration: 180,
+              thumbnail: "",
+              audioUrl: `https://www.youtube.com/watch?v=${videoId}`
+            }
+          });
+        }
+        
+        const item = data.items[0];
         return res.json({ 
           song: {
             id: videoId,
-            title: "Song Not Found",
-            artist: "Unknown",
+            title: item.snippet.title,
+            artist: item.snippet.channelTitle,
             duration: 180,
-            thumbnail: "",
+            thumbnail: item.snippet.thumbnails?.medium?.url || '',
             audioUrl: `https://www.youtube.com/watch?v=${videoId}`
           }
+        });
+        
+      } catch (error) {
+        console.error("Song details error:", error);
+        return res.status(500).json({ 
+          error: "Failed to get song details", 
+          details: error instanceof Error ? error.message : String(error)
         });
       }
     }
