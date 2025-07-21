@@ -264,7 +264,7 @@ app.get("/api/ytmusic/charts", async (req, res) => {
         artist: song.artist,
         thumbnail: song.thumbnail,
         duration: song.duration,
-        audioUrl: `https://music.youtube.com/watch?v=${song.videoId}`
+        audioUrl: `https://www.youtube.com/watch?v=${song.videoId}`
       }));
       
       res.json({ songs });

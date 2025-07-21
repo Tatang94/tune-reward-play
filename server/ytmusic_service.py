@@ -40,7 +40,7 @@ class YTMusicService:
             "artist": self._get_artist_name(song.get("artists", [])),
             "duration": self._get_duration_seconds(song.get("duration")),
             "thumbnail": self._get_thumbnail_url(song.get("thumbnails", [])),
-            "audioUrl": f"https://music.youtube.com/watch?v={song.get('videoId', '')}"
+            "audioUrl": f"https://www.youtube.com/watch?v={song.get('videoId', '')}"
         }
     
     def get_charts(self, country: str = "ID") -> List[Dict[str, Any]]:

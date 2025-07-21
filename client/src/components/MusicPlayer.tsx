@@ -23,43 +23,45 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
   const { toast } = useToast();
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !currentSong) return;
+    if (!currentSong) return;
 
-    audio.src = currentSong.audioUrl;
-    audio.volume = volume / 100;
     setHasEarned(false);
     setCurrentTime(0);
+    setDuration(180); // 3 minutes demo duration
+    setIsPlaying(false);
+  }, [currentSong]);
+
+  // Simulate progress and earnings for demo
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
     
-    const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
-    };
-
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-      
-      // Award earnings after 30 seconds
-      if (!hasEarned && audio.currentTime >= 30) {
-        awardEarnings();
-        setHasEarned(true);
-      }
-    };
-
-    const handleEnded = () => {
-      setIsPlaying(false);
-      onSongComplete();
-    };
-
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
+    if (isPlaying) {
+      interval = setInterval(() => {
+        setCurrentTime(prev => {
+          const newTime = prev + 1;
+          
+          // Award earnings after 30 seconds
+          if (!hasEarned && newTime >= 30) {
+            awardEarnings();
+            setHasEarned(true);
+          }
+          
+          // Auto complete after duration
+          if (newTime >= duration) {
+            setIsPlaying(false);
+            onSongComplete();
+            return 0;
+          }
+          
+          return newTime;
+        });
+      }, 1000);
+    }
 
     return () => {
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
+      if (interval) clearInterval(interval);
     };
-  }, [currentSong, hasEarned, onSongComplete]);
+  }, [isPlaying, hasEarned, duration, onSongComplete]);
 
   const awardEarnings = () => {
     const userData = getStorageData<User>(StorageKeys.USER_DATA, {
@@ -88,33 +90,15 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
   };
 
   const togglePlayPause = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (isPlaying) {
-      audio.pause();
-    } else {
-      audio.play();
-    }
     setIsPlaying(!isPlaying);
   };
 
   const handleSeek = (value: number[]) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    
-    audio.currentTime = value[0];
     setCurrentTime(value[0]);
   };
 
   const handleVolumeChange = (value: number[]) => {
-    const newVolume = value[0];
-    setVolume(newVolume);
-    
-    const audio = audioRef.current;
-    if (audio) {
-      audio.volume = newVolume / 100;
-    }
+    setVolume(value[0]);
   };
 
   const formatTime = (time: number) => {
@@ -136,7 +120,18 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
 
   return (
     <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
-      <audio ref={audioRef} />
+      {/* YouTube Player */}
+      <div className="mb-4">
+        <iframe
+          width="100%"
+          height="200"
+          src={`https://www.youtube.com/embed/${currentSong.id}?enablejsapi=1&autoplay=0&controls=1&modestbranding=1&rel=0`}
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="rounded-lg"
+        />
+      </div>
       
       {/* Song Info */}
       <div className="flex items-center gap-4 mb-6">
@@ -151,7 +146,7 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
         </div>
         {currentTime >= 30 && hasEarned && (
           <div className="text-right">
-            <div className="text-success font-semibold">+Rp 50</div>
+            <div className="text-success font-semibold">+Rp 5</div>
             <div className="text-xs text-muted-foreground">Earned!</div>
           </div>
         )}

@@ -37,6 +37,12 @@ Untuk deployment di Vercel:
 4. Build project: \`node build.js\`
 5. Deploy ke Vercel: \`vercel --prod\`
 
+### Fitur Musik
+- Integrasi YouTube player untuk streaming musik asli
+- Sistem reward 5 Rp per 30 detik mendengarkan
+- Admin dapat mengatur musik trending sendiri
+- Pencarian musik dengan hasil hingga 50 lagu
+
 ## Admin Access
 
 - URL: \`/admin\`
