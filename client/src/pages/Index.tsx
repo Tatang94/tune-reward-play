@@ -82,12 +82,8 @@ const Index = () => {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="trending" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-card/50">
-            <TabsTrigger value="trending" className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Lagu Trending
-            </TabsTrigger>
+        <Tabs defaultValue="player" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 bg-card/50">
             <TabsTrigger value="player" className="flex items-center gap-2">
               <Headphones className="h-4 w-4" />
               Pemutar
@@ -98,13 +94,13 @@ const Index = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="trending" className="space-y-6 mt-6">
-            {/* Trending Songs */}
-            {trendingSongs.length > 0 ? (
+          <TabsContent value="player" className="space-y-6 mt-6">
+            {/* Trending Songs Section in Player Tab */}
+            {trendingSongs.length > 0 && (
               <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
                 <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-primary" />
-                  Lagu Trending (Dikelola Admin)
+                  Pilih Lagu untuk Diputar
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {trendingSongs.map((song) => (
@@ -134,22 +130,9 @@ const Index = () => {
                   ))}
                 </div>
               </Card>
-            ) : (
-              <Card className="p-8 text-center bg-gradient-card border-border/50 shadow-card">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
-                    <Music className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg mb-2">Belum Ada Lagu Trending</h3>
-                    <p className="text-muted-foreground">Admin belum menambahkan lagu trending. Silakan hubungi admin untuk menambahkan musik.</p>
-                  </div>
-                </div>
-              </Card>
             )}
-          </TabsContent>
-
-          <TabsContent value="player" className="mt-6">
+            
+            {/* Audio Player */}
             <SimpleAudioPlayer 
               currentSong={currentSong}
               onSongComplete={handleSongComplete}

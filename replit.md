@@ -4,12 +4,12 @@
 A music streaming reward application that allows users to listen to music and earn rewards. Users can discover trending songs, play music, and accumulate earnings that can be withdrawn through an admin dashboard.
 
 ## Recent Changes
-- **July 21, 2025**: Simplifikasi Interface - Admin-Only Music Management
-  - Hapus tab "Temukan Musik" dan fitur pencarian musik untuk user
+- **July 21, 2025**: Simplifikasi Interface Maksimal - 2 Tabs Saja
+  - Interface sangat sederhana: hanya 2 tabs (Pemutar + Dashboard)
+  - Tab Pemutar menampilkan pilihan lagu dan player dalam satu halaman
   - Hanya admin yang bisa menambahkan/mengelola musik melalui panel /monk
-  - Tab "Lagu Trending" menampilkan musik yang sudah ditambahkan admin
   - Player YouTube embedded berfungsi dengan timer reward 30 detik
-  - Interface lebih sederhana: Trending -> Player -> Dashboard
+  - User workflow: pilih lagu -> play -> dapat reward -> lihat dashboard
   - Data musik masih menggunakan YouTube Data API v3 resmi
   - Fallback ke "lagu indonesia terpopuler 2025" jika admin belum add musik
 - **Juli 21, 2025**: Migrasi Berhasil dari Replit Agent ke Replit Environment
