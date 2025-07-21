@@ -1,35 +1,65 @@
+import { useState, useEffect } from 'react';
 import { AdminDashboard } from '@/components/AdminDashboard';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Shield } from 'lucide-react';
-import { Link } from 'wouter';
+import AdminLogin from './AdminLogin';
 
 const Admin = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = async () => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        setIsAuthenticated(true);
+      } else {
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminUser');
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminUser');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLoginSuccess = (token: string) => {
+    setIsAuthenticated(true);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Memuat...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <AdminLogin onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Admin Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/20 rounded-lg">
-                <Shield className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">Admin Panel</h1>
-                <p className="text-sm text-muted-foreground">Kelola permintaan penarikan</p>
-              </div>
-            </div>
-            
-            <Link href="/">
-              <Button variant="outline" size="sm" className="border-border">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Kembali ke Beranda
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
       <div className="container mx-auto px-4 py-8">
         <AdminDashboard />
       </div>

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Shield, Clock, CheckCircle, XCircle, Users, DollarSign } from 'lucide-react';
+import { Shield, Clock, CheckCircle, XCircle, Users, DollarSign, ArrowLeft, LogOut } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Link } from 'wouter';
 import { 
   Table, 
   TableBody, 
@@ -11,9 +12,17 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { WithdrawRequest } from '@/lib/types';
-import { StorageKeys, getStorageData, setStorageData } from '@/lib/ytmusic-api';
 import { useToast } from '@/hooks/use-toast';
+
+interface WithdrawRequest {
+  id: number;
+  userId: string;
+  amount: number;
+  walletAddress: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  processedAt?: string;
+}
 
 export function AdminDashboard() {
   const [withdrawRequests, setWithdrawRequests] = useState<WithdrawRequest[]>([]);
@@ -24,42 +33,95 @@ export function AdminDashboard() {
     rejected: 0,
     totalAmount: 0
   });
+  const [adminUser, setAdminUser] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
+    const user = localStorage.getItem('adminUser');
+    if (user) {
+      setAdminUser(JSON.parse(user));
+    }
     loadWithdrawRequests();
   }, []);
 
-  const loadWithdrawRequests = () => {
-    const requests = getStorageData<WithdrawRequest[]>(StorageKeys.WITHDRAW_REQUESTS, []);
-    setWithdrawRequests(requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-    
-    // Calculate stats
-    const total = requests.length;
-    const pending = requests.filter(r => r.status === 'pending').length;
-    const approved = requests.filter(r => r.status === 'approved').length;
-    const rejected = requests.filter(r => r.status === 'rejected').length;
-    const totalAmount = requests.reduce((sum, r) => sum + r.amount, 0);
-    
-    setStats({ total, pending, approved, rejected, totalAmount });
+  const loadWithdrawRequests = async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch('/api/admin/withdrawals', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const requests = data.requests || [];
+        setWithdrawRequests(requests.sort((a: WithdrawRequest, b: WithdrawRequest) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        ));
+        
+        // Calculate stats
+        const total = requests.length;
+        const pending = requests.filter((r: WithdrawRequest) => r.status === 'pending').length;
+        const approved = requests.filter((r: WithdrawRequest) => r.status === 'approved').length;
+        const rejected = requests.filter((r: WithdrawRequest) => r.status === 'rejected').length;
+        const totalAmount = requests.reduce((sum: number, r: WithdrawRequest) => sum + r.amount, 0);
+        
+        setStats({ total, pending, approved, rejected, totalAmount });
+      }
+    } catch (error) {
+      console.error('Failed to load withdraw requests:', error);
+    }
   };
 
-  const updateRequestStatus = (requestId: string, status: 'approved' | 'rejected') => {
-    const updatedRequests = withdrawRequests.map(request => 
-      request.id === requestId 
-        ? { ...request, status, processedAt: new Date().toISOString() }
-        : request
-    );
-    
-    setStorageData(StorageKeys.WITHDRAW_REQUESTS, updatedRequests);
-    setWithdrawRequests(updatedRequests);
-    loadWithdrawRequests(); // Refresh stats
-    
-    toast({
-      title: "Status Diperbarui",
-      description: `Permintaan penarikan ${status === 'approved' ? 'disetujui' : 'ditolak'}`,
-      className: status === 'approved' ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"
-    });
+  const updateRequestStatus = async (requestId: number, status: 'approved' | 'rejected') => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch(`/api/admin/withdrawals/${requestId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      });
+
+      if (response.ok) {
+        await loadWithdrawRequests(); // Refresh data
+        toast({
+          title: "Status Diperbarui",
+          description: `Permintaan penarikan ${status === 'approved' ? 'disetujui' : 'ditolak'}`,
+          className: status === 'approved' ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"
+        });
+      } else {
+        throw new Error('Failed to update status');
+      }
+    } catch (error) {
+      console.error('Failed to update withdraw request:', error);
+      toast({
+        title: "Error",
+        description: "Gagal memperbarui status permintaan",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      await fetch('/api/admin/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminUser');
+      window.location.reload();
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -91,145 +153,177 @@ export function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-3 bg-primary/20 rounded-lg">
-          <Shield className="h-6 w-6 text-primary" />
+      {/* Admin Header */}
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40 -mx-4 -mt-8 px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/20 rounded-lg">
+              <Shield className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Admin Panel</h1>
+              <p className="text-sm text-muted-foreground">
+                Selamat datang, {adminUser?.username || 'Admin'}
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Link href="/">
+              <Button variant="outline" size="sm" className="border-border">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Kembali ke Beranda
+              </Button>
+            </Link>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleLogout}
+              className="border-border text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Kelola permintaan penarikan pengguna</p>
+      </header>
+
+      {/* Dashboard Content */}
+      <div className="pt-4">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-foreground">Dashboard Penarikan</h2>
+          <p className="text-muted-foreground">Kelola permintaan penarikan dan pantau aktivitas platform</p>
         </div>
-      </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-primary/20 rounded-lg">
-              <Users className="h-6 w-6 text-primary" />
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-primary/20 rounded-lg">
+                <Users className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Permintaan</p>
+                <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Permintaan</p>
-              <p className="text-2xl font-bold text-foreground">{stats.total}</p>
-            </div>
-          </div>
-        </Card>
+          </Card>
 
-        <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-warning/20 rounded-lg">
-              <Clock className="h-6 w-6 text-warning" />
+          <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-warning/20 rounded-lg">
+                <Clock className="h-6 w-6 text-warning" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Menunggu</p>
+                <p className="text-2xl font-bold text-foreground">{stats.pending}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Menunggu</p>
-              <p className="text-2xl font-bold text-foreground">{stats.pending}</p>
-            </div>
-          </div>
-        </Card>
+          </Card>
 
-        <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-success/20 rounded-lg">
-              <CheckCircle className="h-6 w-6 text-success" />
+          <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-success/20 rounded-lg">
+                <CheckCircle className="h-6 w-6 text-success" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Disetujui</p>
+                <p className="text-2xl font-bold text-foreground">{stats.approved}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Disetujui</p>
-              <p className="text-2xl font-bold text-foreground">{stats.approved}</p>
-            </div>
-          </div>
-        </Card>
+          </Card>
 
-        <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-accent/20 rounded-lg">
-              <DollarSign className="h-6 w-6 text-accent" />
+          <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-accent/20 rounded-lg">
+                <DollarSign className="h-6 w-6 text-accent" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Nilai</p>
+                <p className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalAmount)}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Nilai</p>
-              <p className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalAmount)}</p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Withdraw Requests Table */}
-      <Card className="bg-gradient-card border-border/50 shadow-card">
-        <div className="p-6 border-b border-border">
-          <h3 className="text-lg font-semibold">Permintaan Penarikan</h3>
+          </Card>
         </div>
-        
-        <div className="p-6">
-          {withdrawRequests.length === 0 ? (
-            <div className="text-center py-12">
-              <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground">Belum ada permintaan penarikan</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Tanggal</TableHead>
-                    <TableHead>Jumlah</TableHead>
-                    <TableHead>Alamat Wallet</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {withdrawRequests.map((request) => (
-                    <TableRow key={request.id}>
-                      <TableCell className="font-mono text-sm">
-                        #{request.id.slice(-6)}
-                      </TableCell>
-                      <TableCell>
-                        {formatDate(request.createdAt)}
-                      </TableCell>
-                      <TableCell className="font-semibold">
-                        {formatCurrency(request.amount)}
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {request.walletAddress}
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(request.status)}
-                      </TableCell>
-                      <TableCell>
-                        {request.status === 'pending' ? (
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => updateRequestStatus(request.id, 'approved')}
-                              className="bg-success hover:bg-success/90 text-success-foreground"
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Setujui
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => updateRequestStatus(request.id, 'rejected')}
-                            >
-                              <XCircle className="h-4 w-4 mr-1" />
-                              Tolak
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">
-                            {request.processedAt && formatDate(request.processedAt)}
-                          </span>
-                        )}
-                      </TableCell>
+
+        {/* Withdraw Requests Table */}
+        <Card className="bg-gradient-card border-border/50 shadow-card">
+          <div className="p-6 border-b border-border">
+            <h3 className="text-lg font-semibold">Permintaan Penarikan</h3>
+          </div>
+          
+          <div className="p-6">
+            {withdrawRequests.length === 0 ? (
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground">Belum ada permintaan penarikan</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Tanggal</TableHead>
+                      <TableHead>Jumlah</TableHead>
+                      <TableHead>Alamat Wallet</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Aksi</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </div>
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {withdrawRequests.map((request) => (
+                      <TableRow key={request.id}>
+                        <TableCell className="font-mono text-sm">
+                          #{String(request.id).padStart(6, '0')}
+                        </TableCell>
+                        <TableCell>
+                          {formatDate(request.createdAt)}
+                        </TableCell>
+                        <TableCell className="font-semibold">
+                          {formatCurrency(request.amount)}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {request.walletAddress}
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(request.status)}
+                        </TableCell>
+                        <TableCell>
+                          {request.status === 'pending' ? (
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => updateRequestStatus(request.id, 'approved')}
+                                className="bg-success hover:bg-success/90 text-success-foreground"
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Setujui
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => updateRequestStatus(request.id, 'rejected')}
+                              >
+                                <XCircle className="h-4 w-4 mr-1" />
+                                Tolak
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              {request.processedAt && formatDate(request.processedAt)}
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
