@@ -31,11 +31,15 @@ Untuk deployment di Vercel:
 
 1. Clone repository ini
 2. Install dependencies: \`npm install\`
-3. Setup environment variables:
+3. Setup environment variables di Vercel dashboard:
    - \`DATABASE_URL\`: PostgreSQL connection string
    - \`PGHOST\`, \`PGPORT\`, \`PGUSER\`, \`PGPASSWORD\`, \`PGDATABASE\`
-4. Build project: \`node build.js\`
-5. Deploy ke Vercel: \`vercel --prod\`
+4. Deploy ke Vercel: \`vercel --prod\`
+
+**File penting untuk Vercel:**
+- \`vercel.json\`: Konfigurasi routing dan builds
+- \`api/index.ts\`: Serverless function handler untuk semua API
+- \`dist/\`: Output build frontend (dibuat otomatis oleh Vite)
 
 ### Fitur Musik
 - Integrasi YouTube player untuk streaming musik asli

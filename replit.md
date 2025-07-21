@@ -5,9 +5,10 @@ A music streaming reward application that allows users to listen to music and ea
 
 ## Recent Changes
 - **July 21, 2025**: Fixed Vercel Configuration & YouTube Integration
-  - Perbaiki vercel.json dengan menghapus konflik functions property
+  - Perbaiki vercel.json dengan routing SPA yang tepat untuk mengatasi tampilan kode mentah
   - Integrasi YouTube player untuk streaming musik asli
   - Semua fitur admin siap untuk Vercel deployment
+  - Routing yang benar: API ke serverless function, frontend ke index.html
 - **July 21, 2025**: Vercel Deployment Configuration & Reward Adjustment
   - Setup vercel.json dengan konfigurasi lengkap untuk deployment
   - Buat API handler terpisah di /api/index.ts untuk Vercel
