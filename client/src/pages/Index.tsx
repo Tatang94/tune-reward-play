@@ -3,7 +3,7 @@ import { Music, TrendingUp, Headphones } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SearchSongs } from '@/components/SearchSongs';
-import { SimpleAudioPlayer } from '@/components/SimpleAudioPlayer';
+import { MusicPlayer } from '@/components/MusicPlayer';
 import { UserDashboard } from '@/components/UserDashboard';
 import { Song, User } from '@/lib/types';
 import { YTMusicAPI, StorageKeys, getStorageData } from '@/lib/ytmusic-api';
@@ -138,7 +138,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="player" className="mt-6">
-            <SimpleAudioPlayer 
+            <MusicPlayer 
               currentSong={currentSong}
               onSongComplete={handleSongComplete}
               onEarningsUpdate={handleEarningsUpdate}

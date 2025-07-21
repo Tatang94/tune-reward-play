@@ -26,7 +26,17 @@ export function SimpleAudioPlayer({ currentSong, onSongComplete, onEarningsUpdat
     setHasEarned(false);
     setCurrentTime(0);
     setIsPlaying(false);
-    setDuration(180); // Reset to 3 minutes for demo
+    
+    // Get real audio info from service
+    fetch(`/api/audio/info/${currentSong.id}`)
+      .then(res => res.json())
+      .then(data => {
+        setDuration(data.duration || 180);
+      })
+      .catch(error => {
+        console.error('Failed to get audio info:', error);
+        setDuration(180); // Fallback
+      });
   }, [currentSong]);
 
   // Simulate playback progress for reward system

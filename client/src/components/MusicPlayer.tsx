@@ -103,15 +103,19 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
       audio.play().catch(error => {
         console.error('Failed to play audio:', error);
         
-        // Fallback to YouTube embed if streaming fails
-        toast({
-          title: "Info",
-          description: "Menggunakan YouTube player sebagai fallback.",
-          className: "bg-blue-500 text-white"
-        });
-        
-        // Open YouTube in new tab as fallback
-        window.open(`https://www.youtube.com/watch?v=${currentSong?.id}`, '_blank');
+        // Try to load audio again
+        audio.load();
+        setTimeout(() => {
+          audio.play().catch(() => {
+            // Final fallback to YouTube
+            toast({
+              title: "Info",
+              description: "Membuka YouTube Music untuk mendengarkan.",
+              className: "bg-blue-500 text-white"
+            });
+            window.open(`https://music.youtube.com/watch?v=${currentSong?.id}`, '_blank');
+          });
+        }, 1000);
       });
       setIsPlaying(true);
     }

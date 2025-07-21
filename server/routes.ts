@@ -181,20 +181,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Simple audio info endpoint (ytdl-core has issues with YouTube changes)
+  // Audio streaming via Python FastAPI service
+  app.get("/api/audio/stream/:videoId", async (req, res) => {
+    try {
+      const { videoId } = req.params;
+      console.log(`Proxying audio stream for videoId: ${videoId}`);
+      
+      // Proxy request to Python FastAPI service
+      const response = await fetch(`http://localhost:8001/stream/${videoId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Python service error: ${response.status}`);
+      }
+      
+      // Set headers for audio streaming
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Content-Disposition', `inline; filename="audio_${videoId}.mp3"`);
+      res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      
+      // Pipe the stream from Python service to client
+      const reader = response.body?.getReader();
+      if (reader) {
+        const pump = async () => {
+          const { done, value } = await reader.read();
+          if (done) {
+            res.end();
+            return;
+          }
+          res.write(value);
+          pump();
+        };
+        pump();
+      }
+      
+    } catch (error) {
+      console.error("Audio stream proxy error:", error);
+      res.status(500).json({ 
+        error: "Failed to stream audio", 
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Audio info via Python FastAPI service
   app.get("/api/audio/info/:videoId", async (req, res) => {
     try {
       const { videoId } = req.params;
-      console.log(`Audio info request for videoId: ${videoId}`);
+      console.log(`Getting audio info for videoId: ${videoId}`);
       
-      // Return basic info and YouTube Music link
-      res.json({
-        videoId,
-        youtubeUrl: `https://www.youtube.com/watch?v=${videoId}`,
-        youtubeMusicUrl: `https://music.youtube.com/watch?v=${videoId}`,
-        message: "Use YouTube Music for listening",
-        streaming: false
-      });
+      // Get info from Python FastAPI service
+      const response = await fetch(`http://localhost:8001/info/${videoId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Python service error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      res.json(data);
       
     } catch (error) {
       console.error("Audio info error:", error);
