@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2 } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Card } from '@/components/ui/card';
@@ -7,63 +7,59 @@ import { Song, User } from '@/lib/types';
 import { StorageKeys, getStorageData, setStorageData } from '@/lib/ytmusic-api';
 import { useToast } from '@/hooks/use-toast';
 
-interface MusicPlayerProps {
+interface SimpleAudioPlayerProps {
   currentSong: Song | null;
   onSongComplete: () => void;
   onEarningsUpdate: (newBalance: number) => void;
 }
 
-export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: MusicPlayerProps) {
+export function SimpleAudioPlayer({ currentSong, onSongComplete, onEarningsUpdate }: SimpleAudioPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(70);
+  const [duration, setDuration] = useState(180); // Default 3 minutes
   const [hasEarned, setHasEarned] = useState(false);
-  const audioRef = useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!currentSong || !audioRef.current) return;
-
+    if (!currentSong) return;
+    
     setHasEarned(false);
     setCurrentTime(0);
     setIsPlaying(false);
-
-    // Set the audio source to our streaming endpoint
-    audioRef.current.src = `/api/audio/stream/${currentSong.id}`;
-    audioRef.current.load();
+    setDuration(180); // Reset to 3 minutes for demo
   }, [currentSong]);
 
-  // Real audio progress tracking
+  // Simulate playback progress for reward system
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const updateTime = () => setCurrentTime(audio.currentTime);
-    const updateDuration = () => setDuration(audio.duration);
-    const handleEnded = () => {
-      setIsPlaying(false);
-      onSongComplete();
-    };
-
-    audio.addEventListener('timeupdate', updateTime);
-    audio.addEventListener('loadedmetadata', updateDuration);
-    audio.addEventListener('ended', handleEnded);
+    let interval: NodeJS.Timeout;
+    
+    if (isPlaying && currentSong) {
+      interval = setInterval(() => {
+        setCurrentTime(prev => {
+          const newTime = prev + 1;
+          
+          // Award earnings after 30 seconds
+          if (!hasEarned && newTime >= 30) {
+            awardEarnings();
+            setHasEarned(true);
+          }
+          
+          // Auto complete after duration
+          if (newTime >= duration) {
+            setIsPlaying(false);
+            onSongComplete();
+            return 0;
+          }
+          
+          return newTime;
+        });
+      }, 1000);
+    }
 
     return () => {
-      audio.removeEventListener('timeupdate', updateTime);
-      audio.removeEventListener('loadedmetadata', updateDuration);
-      audio.removeEventListener('ended', handleEnded);
+      if (interval) clearInterval(interval);
     };
-  }, [onSongComplete]);
-
-  // Award earnings after 30 seconds of real playback
-  useEffect(() => {
-    if (!hasEarned && currentTime >= 30 && isPlaying) {
-      awardEarnings();
-      setHasEarned(true);
-    }
-  }, [currentTime, isPlaying, hasEarned]);
+  }, [isPlaying, hasEarned, duration, onSongComplete, currentSong]);
 
   const awardEarnings = () => {
     const userData = getStorageData<User>(StorageKeys.USER_DATA, {
@@ -92,45 +88,19 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
   };
 
   const togglePlayPause = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
+    if (!currentSong) return;
+    
     if (isPlaying) {
-      audio.pause();
       setIsPlaying(false);
     } else {
-      console.log('Attempting to play audio from:', audio.src);
-      audio.play().catch(error => {
-        console.error('Failed to play audio:', error);
-        
-        // Fallback to YouTube embed if streaming fails
-        toast({
-          title: "Info",
-          description: "Menggunakan YouTube player sebagai fallback.",
-          className: "bg-blue-500 text-white"
-        });
-        
-        // Open YouTube in new tab as fallback
-        window.open(`https://www.youtube.com/watch?v=${currentSong?.id}`, '_blank');
-      });
       setIsPlaying(true);
+      // Open YouTube in new tab for actual music listening
+      window.open(`https://music.youtube.com/watch?v=${currentSong.id}`, '_blank');
     }
   };
 
   const handleSeek = (value: number[]) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    
-    audio.currentTime = value[0];
     setCurrentTime(value[0]);
-  };
-
-  const handleVolumeChange = (value: number[]) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    
-    audio.volume = value[0] / 100;
-    setVolume(value[0]);
   };
 
   const formatTime = (time: number) => {
@@ -152,13 +122,6 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
 
   return (
     <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
-      {/* Hidden Audio Element for real streaming */}
-      <audio
-        ref={audioRef}
-        preload="metadata"
-        className="hidden"
-      />
-      
       {/* Visual Player */}
       <div className="mb-4 relative">
         <div className="aspect-video bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg flex items-center justify-center">
@@ -171,13 +134,21 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
             <Button
               onClick={togglePlayPause}
               size="lg"
-              className="h-16 w-16 rounded-full bg-primary/90 hover:bg-primary text-primary-foreground shadow-lg"
+              className="h-16 w-16 rounded-full bg-primary/90 hover:bg-primary text-primary-foreground shadow-lg mr-4"
             >
               {isPlaying ? (
                 <Pause className="h-8 w-8" />
               ) : (
                 <Play className="h-8 w-8 ml-1" />
               )}
+            </Button>
+            <Button
+              onClick={() => window.open(`https://music.youtube.com/watch?v=${currentSong.id}`, '_blank')}
+              size="lg"
+              variant="secondary"
+              className="h-16 w-16 rounded-full shadow-lg"
+            >
+              <ExternalLink className="h-8 w-8" />
             </Button>
           </div>
         </div>
@@ -193,6 +164,7 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
         <div className="flex-1">
           <h3 className="font-semibold text-lg text-foreground">{currentSong.title}</h3>
           <p className="text-muted-foreground">{currentSong.artist}</p>
+          <p className="text-xs text-muted-foreground">Klik Play untuk mendengarkan di YouTube Music</p>
         </div>
         {currentTime >= 30 && hasEarned && (
           <div className="text-right">
@@ -223,10 +195,10 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
           <SkipBack className="h-5 w-5" />
         </Button>
         
-        <Button 
+        <Button
           onClick={togglePlayPause}
-          size="icon"
-          className="h-12 w-12 bg-primary hover:bg-primary/90 shadow-glow"
+          size="lg"
+          className="h-12 w-12 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
         >
           {isPlaying ? (
             <Pause className="h-6 w-6" />
@@ -244,27 +216,23 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
       <div className="flex items-center gap-3">
         <Volume2 className="h-4 w-4 text-muted-foreground" />
         <Slider
-          value={[volume]}
+          value={[70]}
           max={100}
           step={1}
-          onValueChange={handleVolumeChange}
           className="flex-1"
         />
-        <span className="text-sm text-muted-foreground w-8">{volume}</span>
+        <span className="text-sm text-muted-foreground w-8">70</span>
       </div>
 
-      {/* Earning Progress */}
-      {currentTime < 30 && (
-        <div className="mt-4 p-3 bg-secondary/50 rounded-lg">
-          <div className="flex justify-between text-sm mb-2">
-            <span>Dengarkan {30 - Math.floor(currentTime)} detik lagi untuk mendapat Rp 5</span>
-          </div>
-          <div className="w-full bg-border rounded-full h-2">
-            <div 
-              className="bg-primary h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(currentTime / 30) * 100}%` }}
-            />
-          </div>
+      {/* Play Status */}
+      {isPlaying && (
+        <div className="mt-4 p-3 bg-primary/10 rounded-lg text-center">
+          <p className="text-sm text-primary font-medium">
+            ⏯️ Sedang bermain di YouTube Music
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Timer reward akan terus berjalan selama Anda mendengarkan
+          </p>
         </div>
       )}
     </Card>

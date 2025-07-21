@@ -181,48 +181,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Audio streaming endpoint using ytdl-core
-  app.get("/api/audio/stream/:videoId", async (req, res) => {
+  // Simple audio info endpoint (ytdl-core has issues with YouTube changes)
+  app.get("/api/audio/info/:videoId", async (req, res) => {
     try {
       const { videoId } = req.params;
+      console.log(`Audio info request for videoId: ${videoId}`);
       
-      // Validate YouTube video ID
-      if (!ytdl.validateID(videoId)) {
-        return res.status(400).json({ error: "Invalid video ID" });
-      }
-
-      // Get video info first
-      const info = await ytdl.getInfo(videoId);
-      const title = info.videoDetails.title;
-      
-      // Set response headers for audio streaming
-      res.setHeader('Content-Type', 'audio/webm');
-      res.setHeader('Content-Disposition', `inline; filename="${title}.webm"`);
-      res.setHeader('Accept-Ranges', 'bytes');
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      
-      // Stream audio with best quality
-      const audioStream = ytdl(videoId, {
-        filter: 'audioonly',
-        quality: 'highestaudio'
-      });
-      
-      // Pipe the audio stream to response
-      audioStream.pipe(res);
-      
-      // Handle stream errors
-      audioStream.on('error', (error) => {
-        console.error('Audio stream error:', error);
-        if (!res.headersSent) {
-          res.status(500).json({ error: "Failed to stream audio" });
-        }
+      // Return basic info and YouTube Music link
+      res.json({
+        videoId,
+        youtubeUrl: `https://www.youtube.com/watch?v=${videoId}`,
+        youtubeMusicUrl: `https://music.youtube.com/watch?v=${videoId}`,
+        message: "Use YouTube Music for listening",
+        streaming: false
       });
       
     } catch (error) {
-      console.error("Stream audio error:", error);
-      if (!res.headersSent) {
-        res.status(500).json({ error: "Failed to stream audio" });
-      }
+      console.error("Audio info error:", error);
+      res.status(500).json({ 
+        error: "Failed to get audio info", 
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
