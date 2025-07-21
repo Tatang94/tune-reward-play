@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Music, Settings, TrendingUp, Headphones } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Music, TrendingUp, Headphones } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SearchSongs } from '@/components/SearchSongs';
@@ -8,13 +7,12 @@ import { MusicPlayer } from '@/components/MusicPlayer';
 import { UserDashboard } from '@/components/UserDashboard';
 import { Song, User } from '@/lib/types';
 import { YTMusicAPI, StorageKeys, getStorageData } from '@/lib/ytmusic-api';
-import { useLocation } from 'wouter';
 
 const Index = () => {
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [trendingSongs, setTrendingSongs] = useState<Song[]>([]);
   const [currentBalance, setCurrentBalance] = useState(0);
-  const [location, setLocation] = useLocation();
+
 
   useEffect(() => {
     // Load user balance
@@ -72,20 +70,9 @@ const Index = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Saldo Anda</p>
-                <p className="font-bold text-success">Rp {currentBalance.toLocaleString('id-ID')}</p>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setLocation('/admin')}
-                className="border-border"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Admin
-              </Button>
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">Saldo Anda</p>
+              <p className="font-bold text-success">Rp {currentBalance.toLocaleString('id-ID')}</p>
             </div>
           </div>
         </div>

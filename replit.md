@@ -9,6 +9,10 @@ A music streaming reward application that allows users to listen to music and ea
   - Set up proper QueryClient configuration
   - Fixed styling to use Tailwind CSS variables for theme consistency
   - Configured proper client/server separation with Express backend
+- **July 20, 2025**: Moved admin access from landing page
+  - Removed admin button from main header per user request
+  - Added proper admin header with navigation back to home
+  - Admin panel accessible only via direct URL /admin
 
 ## Project Architecture
 - **Frontend**: React with TypeScript, Vite, Tailwind CSS, shadcn/ui components
