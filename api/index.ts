@@ -198,6 +198,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const id = pathname.split('/').pop();
         const { status } = req.body;
 
+        if (!id) {
+          return res.status(400).json({ error: "Invalid withdrawal request ID" });
+        }
+
         if (!["approved", "rejected"].includes(status)) {
           return res.status(400).json({ error: "Invalid status" });
         }
@@ -255,6 +259,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       try {
         await requireAdminAuth(req);
         const id = pathname.split('/').pop();
+        if (!id) {
+          return res.status(400).json({ error: "Invalid song ID" });
+        }
         await vercelStorage.removeFeaturedSong(parseInt(id));
         return res.json({ success: true });
       } catch (error) {
@@ -270,6 +277,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await requireAdminAuth(req);
         const id = pathname.split('/').pop();
         const { displayOrder } = req.body;
+        
+        if (!id) {
+          return res.status(400).json({ error: "Invalid song ID" });
+        }
         
         await vercelStorage.updateFeaturedSongOrder(parseInt(id), displayOrder);
         return res.json({ success: true });
@@ -288,7 +299,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const id = segments[segments.length - 2]; // Get ID before '/status'
         const { isActive } = req.body;
         
-        await vercelStorage.updateFeaturedSongStatus(parseInt(id), isActive);
+        await vercelStorage.toggleFeaturedSongStatus(parseInt(id), isActive);
         return res.json({ success: true });
       } catch (error) {
         if (error.message.includes("Token") || error.message.includes("Invalid")) {
@@ -335,6 +346,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     if (pathname.startsWith('/api/ytmusic/song/') && method === 'GET') {
       const videoId = pathname.split('/').pop();
+      if (!videoId) {
+        return res.status(400).json({ error: "Invalid video ID" });
+      }
       const result = await callPythonService("song", videoId);
       return res.json(result);
     }
