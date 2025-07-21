@@ -22,6 +22,7 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
     setIsLoading(true);
 
     try {
+      console.log('Attempting admin login...');
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: {
@@ -30,7 +31,21 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
         body: JSON.stringify({ username, password }),
       });
 
-      const data = await response.json();
+      console.log('Login response status:', response.status);
+      console.log('Login response headers:', response.headers);
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      let data;
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+        console.log('Login response data:', data);
+      } else {
+        const text = await response.text();
+        console.log('Login response text:', text);
+        throw new Error(`Server returned non-JSON response: ${response.status} ${response.statusText}`);
+      }
 
       if (response.ok) {
         localStorage.setItem('adminToken', data.token);
@@ -42,16 +57,19 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
           className: "bg-success text-success-foreground"
         });
       } else {
+        console.error('Login failed:', data);
         toast({
           title: "Login Gagal",
-          description: data.error || "Username atau password salah",
+          description: data.error || `Server error: ${response.status}`,
           variant: "destructive"
         });
       }
     } catch (error) {
+      console.error('Login error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast({
         title: "Error",
-        description: "Terjadi kesalahan saat login",
+        description: `Terjadi kesalahan saat login: ${errorMessage}`,
         variant: "destructive"
       });
     } finally {
