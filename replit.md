@@ -10,6 +10,8 @@ A music streaming reward application that allows users to listen to music and ea
   - Semua API endpoints admin tidak memerlukan token autentikasi lagi
   - AdminLogin.tsx dihapus dan diganti dengan akses langsung ke AdminDashboard
   - Navigasi admin disederhanakan dengan tombol "Kembali" ke beranda
+  - Update untuk Vercel: Semua requireAdminAuth() dihapus dari api/index.ts
+  - Kedua environment (Replit + Vercel) sekarang support akses admin tanpa login
 - **July 21, 2025**: Migration from Replit Agent to Standard Replit Environment COMPLETED
   - Database configuration converted to memory storage for Replit compatibility
   - ytmusicapi Python package successfully installed and configured

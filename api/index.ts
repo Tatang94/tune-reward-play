@@ -33,23 +33,7 @@ async function initializeVercelApp() {
   }
 }
 
-// Admin authentication helper
-const requireAdminAuth = async (req: VercelRequest): Promise<any> => {
-  const authHeader = req.headers.authorization;
-  const token = Array.isArray(authHeader) ? authHeader[0] : authHeader;
-  const cleanToken = token?.replace('Bearer ', '');
-  
-  if (!cleanToken) {
-    throw new Error("Token required");
-  }
-
-  const admin = await vercelStorage.validateAdminSession(cleanToken);
-  if (!admin) {
-    throw new Error("Invalid or expired token");
-  }
-
-  return admin;
-};
+// No authentication required for admin routes in Vercel
 
 // Helper function to call Python YTMusic service
 function callPythonService(...args: string[]): Promise<any> {
@@ -118,83 +102,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
     
-    if (pathname === '/api/admin/login' && method === 'POST') {
-      await initializeVercelApp();
-      
-      const { username, password } = req.body;
-      console.log("Login attempt for username:", username);
-
-      if (!username || !password) {
-        console.log("Missing username or password");
-        return res.status(400).json({ error: "Username and password required" });
-      }
-
-      const admin = await vercelStorage.getAdminByUsername(username);
-      console.log("Admin found:", admin ? "Yes" : "No");
-      
-      if (!admin) {
-        console.log("Admin not found for username:", username);
-        return res.status(401).json({ error: "Invalid credentials" });
-      }
-
-      const isValidPassword = await bcrypt.compare(password, admin.password);
-      console.log("Password valid:", isValidPassword);
-      
-      if (!isValidPassword) {
-        console.log("Invalid password for username:", username);
-        return res.status(401).json({ error: "Invalid credentials" });
-      }
-
-      const token = await vercelStorage.createAdminSession(admin.id);
-      console.log("Token created successfully");
-      
-      return res.json({ 
-        token, 
-        admin: { id: admin.id, username: admin.username } 
-      });
-    }
-    
-    if (pathname === '/api/admin/logout' && method === 'POST') {
-      try {
-        const admin = await requireAdminAuth(req);
-        const authHeader = req.headers.authorization;
-        const token = Array.isArray(authHeader) ? authHeader[0] : authHeader;
-        const cleanToken = token?.replace('Bearer ', '');
-        
-        if (cleanToken) {
-          await vercelStorage.deleteAdminSession(cleanToken);
-        }
-        return res.json({ success: true });
-      } catch (error) {
-        return res.status(401).json({ error: error.message });
-      }
-    }
-    
-    if (pathname === '/api/admin/profile' && method === 'GET') {
-      try {
-        const admin = await requireAdminAuth(req);
-        return res.json({ admin: { id: admin.id, username: admin.username } });
-      } catch (error) {
-        return res.status(401).json({ error: error.message });
-      }
-    }
+    // Admin routes - no authentication required
     
     if (pathname === '/api/admin/withdrawals' && method === 'GET') {
       try {
-        await requireAdminAuth(req);
         const requests = await vercelStorage.getWithdrawRequests();
         return res.json({ requests });
       } catch (error) {
-        if (error.message.includes("Token") || error.message.includes("Invalid")) {
-          return res.status(401).json({ error: error.message });
-        }
         return res.status(500).json({ error: "Failed to get withdraw requests" });
       }
     }
     
     if (pathname.startsWith('/api/admin/withdrawals/') && method === 'PATCH') {
       try {
-        await requireAdminAuth(req);
         const id = pathname.split('/').pop();
         const { status } = req.body;
 
@@ -209,9 +129,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await vercelStorage.updateWithdrawRequestStatus(parseInt(id), status);
         return res.json({ success: true });
       } catch (error) {
-        if (error.message.includes("Token") || error.message.includes("Invalid")) {
-          return res.status(401).json({ error: error.message });
-        }
         return res.status(500).json({ error: "Failed to update withdraw request" });
       }
     }
@@ -219,20 +136,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Featured songs endpoints
     if (pathname === '/api/admin/featured-songs' && method === 'GET') {
       try {
-        await requireAdminAuth(req);
         const songs = await vercelStorage.getFeaturedSongs();
         return res.json({ songs });
       } catch (error) {
-        if (error.message.includes("Token") || error.message.includes("Invalid")) {
-          return res.status(401).json({ error: error.message });
-        }
         return res.status(500).json({ error: "Failed to get featured songs" });
       }
     }
     
     if (pathname === '/api/admin/featured-songs' && method === 'POST') {
       try {
-        await requireAdminAuth(req);
         const { videoId, title, artist, thumbnail, duration, displayOrder } = req.body;
         
         const song = await vercelStorage.addFeaturedSong({
@@ -247,9 +159,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         
         return res.json({ song });
       } catch (error) {
-        if (error.message.includes("Token") || error.message.includes("Invalid")) {
-          return res.status(401).json({ error: error.message });
-        }
         return res.status(500).json({ error: "Failed to add featured song" });
       }
     }
@@ -257,7 +166,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Additional featured songs management endpoints
     if (pathname.startsWith('/api/admin/featured-songs/') && method === 'DELETE') {
       try {
-        await requireAdminAuth(req);
         const id = pathname.split('/').pop();
         if (!id) {
           return res.status(400).json({ error: "Invalid song ID" });
@@ -265,16 +173,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await vercelStorage.removeFeaturedSong(parseInt(id));
         return res.json({ success: true });
       } catch (error) {
-        if (error.message.includes("Token") || error.message.includes("Invalid")) {
-          return res.status(401).json({ error: error.message });
-        }
         return res.status(500).json({ error: "Failed to remove featured song" });
       }
     }
     
     if (pathname.startsWith('/api/admin/featured-songs/') && !pathname.includes('/status') && method === 'PUT') {
       try {
-        await requireAdminAuth(req);
         const id = pathname.split('/').pop();
         const { displayOrder } = req.body;
         
@@ -285,16 +189,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await vercelStorage.updateFeaturedSongOrder(parseInt(id), displayOrder);
         return res.json({ success: true });
       } catch (error) {
-        if (error.message.includes("Token") || error.message.includes("Invalid")) {
-          return res.status(401).json({ error: error.message });
-        }
         return res.status(500).json({ error: "Failed to update song order" });
       }
     }
     
     if (pathname.includes('/status') && method === 'PATCH') {
       try {
-        await requireAdminAuth(req);
         const segments = pathname.split('/');
         const id = segments[segments.length - 2]; // Get ID before '/status'
         const { isActive } = req.body;
@@ -302,9 +202,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await vercelStorage.toggleFeaturedSongStatus(parseInt(id), isActive);
         return res.json({ success: true });
       } catch (error) {
-        if (error.message.includes("Token") || error.message.includes("Invalid")) {
-          return res.status(401).json({ error: error.message });
-        }
         return res.status(500).json({ error: "Failed to update song status" });
       }
     }
