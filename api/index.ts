@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import express, { type Request, Response, NextFunction } from "express";
-import { storage } from "../server/storage";
+import { vercelStorage } from "../server/storage-vercel";
+import { initializeVercelDatabase } from "../server/db-vercel";
 import bcrypt from "bcrypt";
 import { spawn } from "child_process";
 import path from "path";
@@ -9,20 +10,24 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Initialize default admin account
-async function initializeDefaultAdmin() {
+// Initialize Vercel database and default admin account
+async function initializeVercelApp() {
   try {
-    const existingAdmin = await storage.getAdminByUsername("admin");
+    // Initialize database tables
+    await initializeVercelDatabase();
+    
+    // Create default admin account
+    const existingAdmin = await vercelStorage.getAdminByUsername("admin");
     if (!existingAdmin) {
       const hashedPassword = await bcrypt.hash("audio", 10);
-      await storage.createAdmin({
+      await vercelStorage.createAdmin({
         username: "admin",
         password: hashedPassword,
       });
       console.log("Default admin account created: admin/audio");
     }
   } catch (error) {
-    console.error("Failed to initialize default admin:", error);
+    console.error("Failed to initialize Vercel app:", error);
   }
 }
 
@@ -34,7 +39,7 @@ const requireAdminAuth = async (req: any, res: any, next: any) => {
     return res.status(401).json({ error: "Token required" });
   }
 
-  const admin = await storage.validateAdminSession(token);
+  const admin = await vercelStorage.validateAdminSession(token);
   if (!admin) {
     return res.status(401).json({ error: "Invalid or expired token" });
   }
@@ -88,7 +93,7 @@ app.post("/api/admin/login", async (req, res) => {
       return res.status(400).json({ error: "Username and password required" });
     }
 
-    const admin = await storage.getAdminByUsername(username);
+    const admin = await vercelStorage.getAdminByUsername(username);
     if (!admin) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
@@ -98,7 +103,7 @@ app.post("/api/admin/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    const token = await storage.createAdminSession(admin.id);
+    const token = await vercelStorage.createAdminSession(admin.id);
     res.json({ 
       token, 
       admin: { id: admin.id, username: admin.username } 
@@ -113,7 +118,7 @@ app.post("/api/admin/logout", requireAdminAuth, async (req: any, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (token) {
-      await storage.deleteAdminSession(token);
+      await vercelStorage.deleteAdminSession(token);
     }
     res.json({ success: true });
   } catch (error) {
@@ -128,7 +133,7 @@ app.get("/api/admin/profile", requireAdminAuth, async (req: any, res) => {
 
 app.get("/api/admin/withdrawals", requireAdminAuth, async (req, res) => {
   try {
-    const requests = await storage.getWithdrawRequests();
+    const requests = await vercelStorage.getWithdrawRequests();
     res.json({ requests });
   } catch (error) {
     console.error("Get withdrawals error:", error);
@@ -145,7 +150,7 @@ app.patch("/api/admin/withdrawals/:id", requireAdminAuth, async (req, res) => {
       return res.status(400).json({ error: "Invalid status" });
     }
 
-    await storage.updateWithdrawRequestStatus(parseInt(id), status);
+    await vercelStorage.updateWithdrawRequestStatus(parseInt(id), status);
     res.json({ success: true });
   } catch (error) {
     console.error("Update withdrawal error:", error);
@@ -156,7 +161,7 @@ app.patch("/api/admin/withdrawals/:id", requireAdminAuth, async (req, res) => {
 // Featured songs management
 app.get("/api/admin/featured-songs", requireAdminAuth, async (req, res) => {
   try {
-    const songs = await storage.getFeaturedSongs();
+    const songs = await vercelStorage.getFeaturedSongs();
     res.json({ songs });
   } catch (error) {
     console.error("Get featured songs error:", error);
@@ -172,7 +177,7 @@ app.post("/api/admin/featured-songs", requireAdminAuth, async (req, res) => {
       return res.status(400).json({ error: "VideoId, title, and artist are required" });
     }
 
-    const song = await storage.addFeaturedSong({
+    const song = await vercelStorage.addFeaturedSong({
       videoId,
       title,
       artist,
@@ -192,7 +197,7 @@ app.post("/api/admin/featured-songs", requireAdminAuth, async (req, res) => {
 app.delete("/api/admin/featured-songs/:id", requireAdminAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    await storage.removeFeaturedSong(parseInt(id));
+    await vercelStorage.removeFeaturedSong(parseInt(id));
     res.json({ success: true });
   } catch (error) {
     console.error("Remove featured song error:", error);
@@ -209,7 +214,7 @@ app.patch("/api/admin/featured-songs/:id/order", requireAdminAuth, async (req, r
       return res.status(400).json({ error: "Display order is required" });
     }
 
-    await storage.updateFeaturedSongOrder(parseInt(id), displayOrder);
+    await vercelStorage.updateFeaturedSongOrder(parseInt(id), displayOrder);
     res.json({ success: true });
   } catch (error) {
     console.error("Update song order error:", error);
@@ -226,7 +231,7 @@ app.patch("/api/admin/featured-songs/:id/status", requireAdminAuth, async (req, 
       return res.status(400).json({ error: "Active status is required" });
     }
 
-    await storage.toggleFeaturedSongStatus(parseInt(id), isActive);
+    await vercelStorage.toggleFeaturedSongStatus(parseInt(id), isActive);
     res.json({ success: true });
   } catch (error) {
     console.error("Update song status error:", error);
@@ -254,7 +259,7 @@ app.get("/api/ytmusic/search", async (req, res) => {
 app.get("/api/ytmusic/charts", async (req, res) => {
   try {
     // First try to get admin-configured featured songs
-    const featuredSongs = await storage.getFeaturedSongs();
+    const featuredSongs = await vercelStorage.getFeaturedSongs();
     
     if (featuredSongs && featuredSongs.length > 0) {
       // Convert featured songs to the expected format
@@ -292,7 +297,7 @@ app.get("/api/ytmusic/song/:videoId", async (req, res) => {
 });
 
 // Initialize on startup
-initializeDefaultAdmin();
+initializeVercelApp();
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   return app(req, res);

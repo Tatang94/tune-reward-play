@@ -4,6 +4,14 @@
 A music streaming reward application that allows users to listen to music and earn rewards. Users can discover trending songs, play music, and accumulate earnings that can be withdrawn through an admin dashboard.
 
 ## Recent Changes
+- **July 21, 2025**: Completed Vercel SQL Database Configuration
+  - Dibuat konfigurasi database khusus untuk Vercel Postgres (@vercel/postgres)
+  - File baru: server/db-vercel.ts untuk database connection
+  - File baru: server/storage-vercel.ts untuk data operations
+  - Update api/index.ts untuk menggunakan Vercel database configuration
+  - Dokumentasi lengkap setup Vercel di VERCEL_SETUP.md
+  - Database tables akan dibuat otomatis saat deploy ke Vercel
+  - Admin account (admin/audio) auto-generated pada first deploy
 - **July 21, 2025**: Fixed Vercel Configuration & YouTube Integration
   - Perbaiki vercel.json dengan routing SPA yang tepat untuk mengatasi tampilan kode mentah
   - Integrasi YouTube player untuk streaming musik asli
@@ -86,8 +94,12 @@ A music streaming reward application that allows users to listen to music and ea
 
 ## Deployment Configuration
 - **Replit**: Ready dengan workflow otomatis di port 5000
-- **Vercel**: Konfigurasi lengkap dengan serverless functions
+  - PostgreSQL database tersedia melalui DATABASE_URL
+  - ytmusicapi Python package terinstall
+- **Vercel**: Konfigurasi lengkap dengan Vercel Postgres
   - Frontend build ke /dist untuk static hosting
   - API endpoints di /api/index.ts sebagai Vercel function
+  - Database: Vercel Postgres dengan @vercel/postgres driver
+  - Auto-initialization: tables dan admin account dibuat otomatis
   - Python ytmusicapi tetap berfungsi di Vercel environment
-  - Database PostgreSQL ready untuk produksi
+  - Dokumentasi deployment di VERCEL_SETUP.md

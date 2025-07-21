@@ -45,6 +45,7 @@
     "@types/bcrypt": "^6.0.0",
     "@types/memoizee": "^0.4.12",
     "@vercel/node": "^5.3.6",
+    "@vercel/postgres": "^0.10.0",
     "bcrypt": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
