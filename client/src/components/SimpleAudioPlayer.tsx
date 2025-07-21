@@ -30,30 +30,32 @@ export const SimpleAudioPlayer = ({
         setCurrentTime(prev => {
           if (prev >= totalTime) {
             // Award earnings after 30 seconds
-            const userData = getStorageData(StorageKeys.USER_DATA, {
-              id: '1',
-              balance: 0,
-              totalEarnings: 0,
-              songsPlayed: 0
-            });
-            
-            const newBalance = userData.balance + 5;
-            const updatedUser = {
-              ...userData,
-              balance: newBalance,
-              totalEarnings: userData.totalEarnings + 5,
-              songsPlayed: userData.songsPlayed + 1
-            };
-            
-            setStorageData(StorageKeys.USER_DATA, updatedUser);
-            onEarningsUpdate?.(newBalance);
-            
-            // Reset player
-            setIsPlaying(false);
-            setCurrentTime(0);
-            setHasStartedPlaying(false);
-            setShowPlayer(false);
-            onSongComplete?.();
+            setTimeout(() => {
+              const userData = getStorageData(StorageKeys.USER_DATA, {
+                id: '1',
+                balance: 0,
+                totalEarnings: 0,
+                songsPlayed: 0
+              });
+              
+              const newBalance = userData.balance + 5;
+              const updatedUser = {
+                ...userData,
+                balance: newBalance,
+                totalEarnings: userData.totalEarnings + 5,
+                songsPlayed: userData.songsPlayed + 1
+              };
+              
+              setStorageData(StorageKeys.USER_DATA, updatedUser);
+              onEarningsUpdate?.(newBalance);
+              
+              // Reset player
+              setIsPlaying(false);
+              setCurrentTime(0);
+              setHasStartedPlaying(false);
+              setShowPlayer(false);
+              onSongComplete?.();
+            }, 0);
             
             return 0;
           }
