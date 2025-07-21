@@ -4,7 +4,7 @@ import { initializeVercelDatabase } from "../server/db-vercel";
 import bcrypt from "bcrypt";
 import { spawn } from "child_process";
 import path from "path";
-import ytdl from "ytdl-core";
+
 
 // Initialize Vercel database and default admin account
 async function initializeVercelApp() {
@@ -72,73 +72,7 @@ function callPythonService(...args: string[]): Promise<any> {
   });
 }
 
-// Audio streaming endpoints for Vercel
-async function handleAudioStream(req: VercelRequest, res: VercelResponse, videoId: string) {
-  try {
-    console.log(`Getting stream URL for videoId: ${videoId}`);
-    
-    const result = await callPythonService("stream", videoId);
-    
-    if (result.stream) {
-      res.json(result.stream);
-    } else {
-      res.status(404).json({ error: "Song not found or no stream available" });
-    }
-  } catch (error) {
-    console.error("Stream URL error:", error);
-    res.status(500).json({ 
-      error: "Failed to get stream URL", 
-      details: error instanceof Error ? error.message : String(error)
-    });
-  }
-}
 
-async function handleAudioPlay(req: VercelRequest, res: VercelResponse, videoId: string) {
-  try {
-    console.log(`Proxying audio stream for videoId: ${videoId}`);
-    
-    // Get stream URL from ytmusicapi
-    const result = await callPythonService("stream", videoId);
-    
-    if (!result.stream || !result.stream.streamUrl) {
-      return res.status(404).json({ error: "Stream not found" });
-    }
-    
-    const streamUrl = result.stream.streamUrl;
-    const mimeType = result.stream.mimeType || "audio/mp4";
-    
-    // Set appropriate headers
-    res.setHeader("Content-Type", mimeType);
-    res.setHeader("Accept-Ranges", "bytes");
-    res.setHeader("Cache-Control", "no-cache");
-    
-    // Handle range requests for audio streaming
-    const range = req.headers.range;
-    if (range) {
-      res.setHeader("Content-Range", "bytes */");
-      res.status(206);
-    }
-    
-    // Proxy the audio stream
-    const fetch = require('node-fetch');
-    const response = await fetch(streamUrl, {
-      headers: range ? { Range: range } : {}
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch audio: ${response.status}`);
-    }
-    
-    response.body.pipe(res);
-    
-  } catch (error) {
-    console.error("Audio proxy error:", error);
-    res.status(500).json({ 
-      error: "Failed to stream audio", 
-      details: error instanceof Error ? error.message : String(error)
-    });
-  }
-}
 
 // Initialize on startup
 initializeVercelApp().catch(console.error);
@@ -275,21 +209,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
     
-    // YouTube Music API endpoints
+    // YouTube Music API endpoints - using featured songs only
     if (pathname === '/api/ytmusic/search' && method === 'GET') {
       const query = req.query?.q;
-      const limit = req.query?.limit || "50";
+      const limit = parseInt(String(req.query?.limit || "10"));
       
       if (!query || typeof query !== 'string') {
         return res.status(400).json({ error: "Query parameter required" });
       }
       
-      const result = await callPythonService("search", query, String(limit));
-      return res.json(result);
+      // Search in featured songs only
+      const featuredSongs = await vercelStorage.getFeaturedSongs();
+      const searchTerm = query.toLowerCase();
+      
+      const filteredSongs = featuredSongs
+        .filter(song => 
+          song.title.toLowerCase().includes(searchTerm) ||
+          song.artist.toLowerCase().includes(searchTerm)
+        )
+        .slice(0, limit)
+        .map(song => ({
+          id: song.videoId,
+          title: song.title,
+          artist: song.artist,
+          thumbnail: song.thumbnail,
+          duration: song.duration,
+          audioUrl: `https://www.youtube.com/watch?v=${song.videoId}`
+        }));
+      
+      return res.json({ songs: filteredSongs });
     }
     
     if (pathname === '/api/ytmusic/charts' && method === 'GET') {
-      // First try to get admin-configured featured songs
+      // Get admin-configured featured songs only
       const featuredSongs = await vercelStorage.getFeaturedSongs();
       
       if (featuredSongs && featuredSongs.length > 0) {
@@ -304,9 +256,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         
         return res.json({ songs });
       } else {
-        const country = req.query?.country || "ID";
-        const result = await callPythonService("charts", String(country));
-        return res.json(result);
+        return res.json({ songs: [] });
       }
     }
     
@@ -315,26 +265,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!videoId) {
         return res.status(400).json({ error: "Invalid video ID" });
       }
-      const result = await callPythonService("song", videoId);
-      return res.json(result);
+      
+      // Find song in featured songs
+      const featuredSongs = await vercelStorage.getFeaturedSongs();
+      const song = featuredSongs.find(s => s.videoId === videoId);
+      
+      if (song) {
+        return res.json({ 
+          song: {
+            id: song.videoId,
+            title: song.title,
+            artist: song.artist,
+            duration: song.duration,
+            thumbnail: song.thumbnail,
+            audioUrl: `https://www.youtube.com/watch?v=${song.videoId}`
+          }
+        });
+      } else {
+        return res.json({ 
+          song: {
+            id: videoId,
+            title: "Song Not Found",
+            artist: "Unknown",
+            duration: 180,
+            thumbnail: "",
+            audioUrl: `https://www.youtube.com/watch?v=${videoId}`
+          }
+        });
+      }
     }
     
-    // Audio streaming endpoint for Vercel using ytmusicapi
-    if (pathname.startsWith('/api/audio/stream/') && method === 'GET') {
-      const videoId = pathname.split('/').pop();
-      if (!videoId) {
-        return res.status(400).json({ error: "Video ID required" });
-      }
-      return handleAudioStream(req, res, videoId);
-    }
-    
-    if (pathname.startsWith('/api/audio/play/') && method === 'GET') {
-      const videoId = pathname.split('/').pop();
-      if (!videoId) {
-        return res.status(400).json({ error: "Video ID required" });
-      }
-      return handleAudioPlay(req, res, videoId);
-    }
+
     
     // Default 404
     return res.status(404).json({ error: "Endpoint not found" });

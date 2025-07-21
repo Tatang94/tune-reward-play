@@ -4,15 +4,13 @@
 A music streaming reward application that allows users to listen to music and earn rewards. Users can discover trending songs, play music, and accumulate earnings that can be withdrawn through an admin dashboard.
 
 ## Recent Changes
-- **July 21, 2025**: Implementasi Streaming Musik Langsung dengan ytmusicapi
-  - Streaming musik langsung dari YouTube Music menggunakan ytmusicapi Python
-  - Audio player menggunakan streaming URL asli dari YouTube Music
-  - Sistem proxy streaming untuk mengatasi masalah CORS di Replit dan Vercel  
-  - Endpoint /api/audio/stream/{videoId} untuk mendapatkan URL streaming
-  - Endpoint /api/audio/play/{videoId} untuk proxy streaming langsung
-  - Tampilan saldo diperbaiki menjadi lebih proporsional dan modern
-  - Support penuh untuk kedua environment: Replit dengan memory storage, Vercel dengan Postgres
-  - ytmusicapi dan node-fetch dependencies berhasil terinstall
+- **July 21, 2025**: Pembersihan Kode dan Simplifikasi Player
+  - Hapus ytdl-core dependency dan semua referensi Python service
+  - Player musik disederhanakan menjadi placeholder yang menampilkan info lagu
+  - API endpoints menggunakan featured songs dari database admin saja
+  - Pembersihan file Python yang tidak diperlukan (ytmusic_service.py, audio_service.py)
+  - Aplikasi berjalan lancar tanpa dependency eksternal yang kompleks
+  - Focus pada admin panel untuk mengelola featured songs manual
 - **Juli 21, 2025**: Migrasi Berhasil dari Replit Agent ke Replit Environment
   - ytmusicapi Python package berhasil diinstall dan berfungsi dengan baik
   - Tampilan saldo diperbaiki dengan desain modern gradient dan shadow

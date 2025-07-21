@@ -1,16 +1,11 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { spawn } from "child_process";
-import path from "path";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
-import ytdl from "ytdl-core";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize default admin account if it doesn't exist
   await initializeDefaultAdmin();
-
-  // No authentication middleware - direct access to admin features
 
   // Admin routes - no authentication required
 
@@ -43,7 +38,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Featured songs management
+  // Get featured songs (for admin management)
   app.get("/api/admin/featured-songs", async (req, res) => {
     try {
       const songs = await storage.getFeaturedSongs();
@@ -54,35 +49,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add featured song
   app.post("/api/admin/featured-songs", async (req, res) => {
     try {
-      const { videoId, title, artist, thumbnail, duration, displayOrder } = req.body;
-
+      const { videoId, title, artist, thumbnail, duration } = req.body;
+      
       if (!videoId || !title || !artist) {
-        return res.status(400).json({ error: "VideoId, title, and artist are required" });
+        return res.status(400).json({ error: "Missing required fields" });
       }
 
-      const song = await storage.addFeaturedSong({
+      await storage.addFeaturedSong({
         videoId,
         title,
         artist,
         thumbnail: thumbnail || "",
-        duration: duration || 0,
-        displayOrder: displayOrder || 0,
-        isActive: true,
+        duration: duration || 180
       });
 
-      res.json({ song });
+      res.json({ success: true });
     } catch (error) {
       console.error("Add featured song error:", error);
       res.status(500).json({ error: "Failed to add featured song" });
     }
   });
 
-  app.delete("/api/admin/featured-songs/:id", async (req, res) => {
+  // Remove featured song
+  app.delete("/api/admin/featured-songs/:videoId", async (req, res) => {
     try {
-      const { id } = req.params;
-      await storage.removeFeaturedSong(parseInt(id));
+      const { videoId } = req.params;
+      await storage.removeFeaturedSong(videoId);
       res.json({ success: true });
     } catch (error) {
       console.error("Remove featured song error:", error);
@@ -90,206 +85,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/admin/featured-songs/:id/order", async (req, res) => {
+  // Reorder featured songs
+  app.patch("/api/admin/featured-songs/reorder", async (req, res) => {
     try {
-      const { id } = req.params;
-      const { displayOrder } = req.body;
-
-      if (displayOrder === undefined) {
-        return res.status(400).json({ error: "Display order is required" });
+      const { songIds } = req.body;
+      
+      if (!Array.isArray(songIds)) {
+        return res.status(400).json({ error: "songIds must be an array" });
       }
 
-      await storage.updateFeaturedSongOrder(parseInt(id), displayOrder);
+      await storage.reorderFeaturedSongs(songIds);
       res.json({ success: true });
     } catch (error) {
-      console.error("Update song order error:", error);
-      res.status(500).json({ error: "Failed to update song order" });
+      console.error("Reorder songs error:", error);
+      res.status(500).json({ error: "Failed to reorder songs" });
     }
   });
 
-  app.patch("/api/admin/featured-songs/:id/status", async (req, res) => {
+  // User routes
+  app.post("/api/user/withdraw", async (req, res) => {
     try {
-      const { id } = req.params;
-      const { isActive } = req.body;
-
-      if (isActive === undefined) {
-        return res.status(400).json({ error: "Active status is required" });
+      const { amount, paymentMethod, paymentDetails } = req.body;
+      
+      if (!amount || !paymentMethod || !paymentDetails) {
+        return res.status(400).json({ error: "Missing required fields" });
       }
 
-      await storage.toggleFeaturedSongStatus(parseInt(id), isActive);
-      res.json({ success: true });
+      if (amount < 10000) {
+        return res.status(400).json({ error: "Minimum withdrawal amount is Rp 10,000" });
+      }
+
+      const request = await storage.createWithdrawRequest({
+        userId: "1", // Default user
+        amount,
+        paymentMethod,
+        paymentDetails,
+        status: "pending"
+      });
+
+      res.json({ success: true, request });
     } catch (error) {
-      console.error("Update song status error:", error);
-      res.status(500).json({ error: "Failed to update song status" });
+      console.error("Withdraw request error:", error);
+      res.status(500).json({ error: "Failed to create withdraw request" });
     }
   });
 
-  // YouTube Music API routes
+  // YTMusic API routes - using featured songs data only
   app.get("/api/ytmusic/search", async (req, res) => {
     try {
-      const { q: query, limit = "50" } = req.query;
+      const { q: query, limit = "10" } = req.query;
       
       if (!query || typeof query !== 'string') {
         return res.status(400).json({ error: "Query parameter required" });
       }
       
-      const result = await callPythonService("search", query, String(limit));
-      res.json(result);
+      // Search in featured songs only
+      const featuredSongs = await storage.getFeaturedSongs();
+      const searchTerm = query.toLowerCase();
+      
+      const filteredSongs = featuredSongs
+        .filter(song => 
+          song.title.toLowerCase().includes(searchTerm) ||
+          song.artist.toLowerCase().includes(searchTerm)
+        )
+        .slice(0, parseInt(String(limit)))
+        .map(song => ({
+          id: song.videoId,
+          title: song.title,
+          artist: song.artist,
+          thumbnail: song.thumbnail,
+          duration: song.duration,
+          audioUrl: `https://www.youtube.com/watch?v=${song.videoId}`
+        }));
+      
+      res.json({ songs: filteredSongs });
+      
     } catch (error) {
       console.error("Search error:", error);
       res.status(500).json({ error: "Failed to search songs" });
     }
   });
-  
+
   app.get("/api/ytmusic/charts", async (req, res) => {
     try {
-      // First try to get admin-configured featured songs
+      // Get admin-configured featured songs only
       const featuredSongs = await storage.getFeaturedSongs();
       
       if (featuredSongs && featuredSongs.length > 0) {
-        // Convert featured songs to the expected format
         const songs = featuredSongs.map(song => ({
           id: song.videoId,
           title: song.title,
           artist: song.artist,
           thumbnail: song.thumbnail,
           duration: song.duration,
-          audioUrl: `https://music.youtube.com/watch?v=${song.videoId}`
+          audioUrl: `https://www.youtube.com/watch?v=${song.videoId}`
         }));
         
-        res.json({ songs });
+        return res.json({ songs });
       } else {
-        // Fallback to YouTube Music charts if no featured songs
-        const { country = "ID" } = req.query;
-        const result = await callPythonService("charts", String(country));
-        res.json(result);
+        // Return empty chart if no featured songs
+        res.json({ songs: [] });
       }
     } catch (error) {
       console.error("Charts error:", error);
       res.status(500).json({ error: "Failed to get charts" });
     }
   });
-  
+
   app.get("/api/ytmusic/song/:videoId", async (req, res) => {
     try {
       const { videoId } = req.params;
-      const result = await callPythonService("song", videoId);
-      res.json(result);
+      
+      // Find song in featured songs
+      const featuredSongs = await storage.getFeaturedSongs();
+      const song = featuredSongs.find(s => s.videoId === videoId);
+      
+      if (song) {
+        res.json({ 
+          song: {
+            id: song.videoId,
+            title: song.title,
+            artist: song.artist,
+            duration: song.duration,
+            thumbnail: song.thumbnail,
+            audioUrl: `https://www.youtube.com/watch?v=${song.videoId}`
+          }
+        });
+      } else {
+        res.json({ 
+          song: {
+            id: videoId,
+            title: "Song Not Found",
+            artist: "Unknown",
+            duration: 180,
+            thumbnail: "",
+            audioUrl: `https://www.youtube.com/watch?v=${videoId}`
+          }
+        });
+      }
     } catch (error) {
       console.error("Song details error:", error);
-      res.status(500).json({ error: "Failed to get song details" });
-    }
-  });
-
-  // Audio streaming via Python FastAPI service
-  app.get("/api/audio/stream/:videoId", async (req, res) => {
-    try {
-      const { videoId } = req.params;
-      console.log(`Proxying audio stream for videoId: ${videoId}`);
-      
-      // Proxy request to Python FastAPI service
-      const response = await fetch(`http://localhost:8001/stream/${videoId}`);
-      
-      if (!response.ok) {
-        throw new Error(`Python service error: ${response.status}`);
-      }
-      
-      // Set headers for audio streaming
-      res.setHeader('Content-Type', 'audio/mpeg');
-      res.setHeader('Content-Disposition', `inline; filename="audio_${videoId}.mp3"`);
-      res.setHeader('Accept-Ranges', 'bytes');
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      
-      // Pipe the stream from Python service to client
-      const reader = response.body?.getReader();
-      if (reader) {
-        const pump = async () => {
-          const { done, value } = await reader.read();
-          if (done) {
-            res.end();
-            return;
-          }
-          res.write(value);
-          pump();
-        };
-        pump();
-      }
-      
-    } catch (error) {
-      console.error("Audio stream proxy error:", error);
       res.status(500).json({ 
-        error: "Failed to stream audio", 
-        details: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-
-  // Get streaming URL for a song
-  app.get("/api/audio/stream/:videoId", async (req, res) => {
-    try {
-      const { videoId } = req.params;
-      console.log(`Getting stream URL for videoId: ${videoId}`);
-      
-      const result = await callPythonService("stream", videoId);
-      
-      if (result.stream) {
-        res.json(result.stream);
-      } else {
-        res.status(404).json({ error: "Song not found or no stream available" });
-      }
-    } catch (error) {
-      console.error("Stream URL error:", error);
-      res.status(500).json({ 
-        error: "Failed to get stream URL", 
-        details: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-
-  // Proxy streaming audio to avoid CORS issues
-  app.get("/api/audio/play/:videoId", async (req, res) => {
-    try {
-      const { videoId } = req.params;
-      console.log(`Proxying audio stream for videoId: ${videoId}`);
-      
-      // Get stream URL from ytmusicapi
-      const result = await callPythonService("stream", videoId);
-      
-      if (!result.stream || !result.stream.streamUrl) {
-        return res.status(404).json({ error: "Stream not found" });
-      }
-      
-      const streamUrl = result.stream.streamUrl;
-      const mimeType = result.stream.mimeType || "audio/mp4";
-      
-      // Set appropriate headers
-      res.setHeader("Content-Type", mimeType);
-      res.setHeader("Accept-Ranges", "bytes");
-      res.setHeader("Cache-Control", "no-cache");
-      
-      // Handle range requests for audio streaming
-      const range = req.headers.range;
-      if (range) {
-        res.setHeader("Content-Range", "bytes */");
-        res.status(206);
-      }
-      
-      // Proxy the audio stream  
-      const fetch = require('node-fetch');
-      const response = await fetch(streamUrl, {
-        headers: range ? { Range: range } : {}
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch audio: ${response.status}`);
-      }
-      
-      response.body?.pipe(res);
-      
-    } catch (error) {
-      console.error("Audio proxy error:", error);
-      res.status(500).json({ 
-        error: "Failed to stream audio", 
+        error: "Failed to get song details", 
         details: error instanceof Error ? error.message : String(error)
       });
     }
@@ -314,40 +251,4 @@ async function initializeDefaultAdmin() {
   } catch (error) {
     console.error("Failed to initialize default admin:", error);
   }
-}
-
-// Helper function to call Python YTMusic service
-function callPythonService(...args: string[]): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const pythonScript = path.join(process.cwd(), "server", "ytmusic_service.py");
-    const python = spawn("python3", [pythonScript, ...args]);
-    
-    let stdout = "";
-    let stderr = "";
-    
-    python.stdout.on("data", (data) => {
-      stdout += data.toString();
-    });
-    
-    python.stderr.on("data", (data) => {
-      stderr += data.toString();
-    });
-    
-    python.on("close", (code) => {
-      if (code === 0) {
-        try {
-          const result = JSON.parse(stdout);
-          resolve(result);
-        } catch (error) {
-          reject(new Error("Failed to parse Python service response"));
-        }
-      } else {
-        reject(new Error(`Python service failed with code ${code}: ${stderr}`));
-      }
-    });
-    
-    python.on("error", (error) => {
-      reject(error);
-    });
-  });
 }
