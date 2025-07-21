@@ -33,6 +33,26 @@ export const withdrawRequests = pgTable("withdraw_requests", {
   processedAt: timestamp("processed_at"),
 });
 
+export const adminSettings = pgTable("admin_settings", {
+  id: serial("id").primaryKey(),
+  settingKey: varchar("setting_key", { length: 100 }).notNull().unique(),
+  settingValue: text("setting_value"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const featuredSongs = pgTable("featured_songs", {
+  id: serial("id").primaryKey(),
+  videoId: varchar("video_id", { length: 20 }).notNull(),
+  title: text("title").notNull(),
+  artist: text("artist").notNull(),
+  thumbnail: text("thumbnail"),
+  duration: integer("duration").default(0),
+  isActive: boolean("is_active").default(true),
+  displayOrder: integer("display_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -49,9 +69,24 @@ export const insertWithdrawRequestSchema = createInsertSchema(withdrawRequests).
   processedAt: true,
 });
 
+export const insertAdminSettingsSchema = createInsertSchema(adminSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFeaturedSongSchema = createInsertSchema(featuredSongs).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Admin = typeof admins.$inferSelect;
 export type InsertAdmin = z.infer<typeof insertAdminSchema>;
 export type WithdrawRequest = typeof withdrawRequests.$inferSelect;
 export type InsertWithdrawRequest = z.infer<typeof insertWithdrawRequestSchema>;
+export type AdminSettings = typeof adminSettings.$inferSelect;
+export type InsertAdminSettings = z.infer<typeof insertAdminSettingsSchema>;
+export type FeaturedSong = typeof featuredSongs.$inferSelect;
+export type InsertFeaturedSong = z.infer<typeof insertFeaturedSongSchema>;

@@ -3,12 +3,18 @@ import {
   admins, 
   adminSessions, 
   withdrawRequests,
+  adminSettings,
+  featuredSongs,
   type User, 
   type InsertUser,
   type Admin,
   type InsertAdmin,
   type WithdrawRequest,
-  type InsertWithdrawRequest
+  type InsertWithdrawRequest,
+  type AdminSettings,
+  type InsertAdminSettings,
+  type FeaturedSong,
+  type InsertFeaturedSong
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gt } from "drizzle-orm";
@@ -31,6 +37,17 @@ export interface IStorage {
   getWithdrawRequests(): Promise<WithdrawRequest[]>;
   createWithdrawRequest(request: InsertWithdrawRequest): Promise<WithdrawRequest>;
   updateWithdrawRequestStatus(id: number, status: string): Promise<void>;
+  
+  // Admin settings operations
+  getAdminSetting(key: string): Promise<AdminSettings | undefined>;
+  setAdminSetting(key: string, value: string): Promise<void>;
+  
+  // Featured songs operations
+  getFeaturedSongs(): Promise<FeaturedSong[]>;
+  addFeaturedSong(song: InsertFeaturedSong): Promise<FeaturedSong>;
+  removeFeaturedSong(id: number): Promise<void>;
+  updateFeaturedSongOrder(id: number, order: number): Promise<void>;
+  toggleFeaturedSongStatus(id: number, isActive: boolean): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -122,6 +139,60 @@ export class DatabaseStorage implements IStorage {
         processedAt: new Date() 
       })
       .where(eq(withdrawRequests.id, id));
+  }
+
+  // Admin settings operations
+  async getAdminSetting(key: string): Promise<AdminSettings | undefined> {
+    const [setting] = await db.select().from(adminSettings).where(eq(adminSettings.settingKey, key));
+    return setting || undefined;
+  }
+
+  async setAdminSetting(key: string, value: string): Promise<void> {
+    const existing = await this.getAdminSetting(key);
+    if (existing) {
+      await db
+        .update(adminSettings)
+        .set({ settingValue: value, updatedAt: new Date() })
+        .where(eq(adminSettings.settingKey, key));
+    } else {
+      await db.insert(adminSettings).values({
+        settingKey: key,
+        settingValue: value,
+      });
+    }
+  }
+
+  // Featured songs operations
+  async getFeaturedSongs(): Promise<FeaturedSong[]> {
+    return db.select().from(featuredSongs)
+      .where(eq(featuredSongs.isActive, true))
+      .orderBy(featuredSongs.displayOrder);
+  }
+
+  async addFeaturedSong(song: InsertFeaturedSong): Promise<FeaturedSong> {
+    const [featuredSong] = await db
+      .insert(featuredSongs)
+      .values(song)
+      .returning();
+    return featuredSong;
+  }
+
+  async removeFeaturedSong(id: number): Promise<void> {
+    await db.delete(featuredSongs).where(eq(featuredSongs.id, id));
+  }
+
+  async updateFeaturedSongOrder(id: number, order: number): Promise<void> {
+    await db
+      .update(featuredSongs)
+      .set({ displayOrder: order })
+      .where(eq(featuredSongs.id, id));
+  }
+
+  async toggleFeaturedSongStatus(id: number, isActive: boolean): Promise<void> {
+    await db
+      .update(featuredSongs)
+      .set({ isActive })
+      .where(eq(featuredSongs.id, id));
   }
 }
 

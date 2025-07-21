@@ -104,10 +104,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Featured songs management (admin only)
+  app.get("/api/admin/featured-songs", requireAdminAuth, async (req, res) => {
+    try {
+      const songs = await storage.getFeaturedSongs();
+      res.json({ songs });
+    } catch (error) {
+      console.error("Get featured songs error:", error);
+      res.status(500).json({ error: "Failed to get featured songs" });
+    }
+  });
+
+  app.post("/api/admin/featured-songs", requireAdminAuth, async (req, res) => {
+    try {
+      const { videoId, title, artist, thumbnail, duration, displayOrder } = req.body;
+
+      if (!videoId || !title || !artist) {
+        return res.status(400).json({ error: "VideoId, title, and artist are required" });
+      }
+
+      const song = await storage.addFeaturedSong({
+        videoId,
+        title,
+        artist,
+        thumbnail: thumbnail || "",
+        duration: duration || 0,
+        displayOrder: displayOrder || 0,
+        isActive: true,
+      });
+
+      res.json({ song });
+    } catch (error) {
+      console.error("Add featured song error:", error);
+      res.status(500).json({ error: "Failed to add featured song" });
+    }
+  });
+
+  app.delete("/api/admin/featured-songs/:id", requireAdminAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.removeFeaturedSong(parseInt(id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Remove featured song error:", error);
+      res.status(500).json({ error: "Failed to remove featured song" });
+    }
+  });
+
+  app.patch("/api/admin/featured-songs/:id/order", requireAdminAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { displayOrder } = req.body;
+
+      if (displayOrder === undefined) {
+        return res.status(400).json({ error: "Display order is required" });
+      }
+
+      await storage.updateFeaturedSongOrder(parseInt(id), displayOrder);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Update song order error:", error);
+      res.status(500).json({ error: "Failed to update song order" });
+    }
+  });
+
+  app.patch("/api/admin/featured-songs/:id/status", requireAdminAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { isActive } = req.body;
+
+      if (isActive === undefined) {
+        return res.status(400).json({ error: "Active status is required" });
+      }
+
+      await storage.toggleFeaturedSongStatus(parseInt(id), isActive);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Update song status error:", error);
+      res.status(500).json({ error: "Failed to update song status" });
+    }
+  });
+
   // YouTube Music API routes
   app.get("/api/ytmusic/search", async (req, res) => {
     try {
-      const { q: query, limit = "10" } = req.query;
+      const { q: query, limit = "50" } = req.query;
       
       if (!query || typeof query !== 'string') {
         return res.status(400).json({ error: "Query parameter required" });
@@ -123,9 +204,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/ytmusic/charts", async (req, res) => {
     try {
-      const { country = "ID" } = req.query;
-      const result = await callPythonService("charts", String(country));
-      res.json(result);
+      // First try to get admin-configured featured songs
+      const featuredSongs = await storage.getFeaturedSongs();
+      
+      if (featuredSongs && featuredSongs.length > 0) {
+        // Convert featured songs to the expected format
+        const songs = featuredSongs.map(song => ({
+          id: song.videoId,
+          title: song.title,
+          artist: song.artist,
+          thumbnail: song.thumbnail,
+          duration: song.duration,
+          audioUrl: `https://music.youtube.com/watch?v=${song.videoId}`
+        }));
+        
+        res.json({ songs });
+      } else {
+        // Fallback to YouTube Music charts if no featured songs
+        const { country = "ID" } = req.query;
+        const result = await callPythonService("charts", String(country));
+        res.json(result);
+      }
     } catch (error) {
       console.error("Charts error:", error);
       res.status(500).json({ error: "Failed to get charts" });

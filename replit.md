@@ -4,6 +4,12 @@
 A music streaming reward application that allows users to listen to music and earn rewards. Users can discover trending songs, play music, and accumulate earnings that can be withdrawn through an admin dashboard.
 
 ## Recent Changes
+- **July 21, 2025**: Enhanced Admin Features & Search Improvements
+  - Pencarian musik ditingkatkan dari 20 menjadi 50 lagu
+  - Admin dapat mengelola musik trending sendiri melalui dashboard
+  - Fitur admin untuk menambah, hapus, dan reorder featured songs
+  - Charts endpoint sekarang menggunakan featured songs yang diatur admin
+  - Tabs interface di admin dashboard untuk memisahkan penarikan dan musik
 - **July 21, 2025**: Migrasi Berhasil ke Replit Environment
   - Database PostgreSQL berhasil dibuat dan tabel di-migrate
   - Python ytmusicapi service berfungsi dengan baik
@@ -41,11 +47,13 @@ A music streaming reward application that allows users to listen to music and ea
 - **Storage**: In-memory storage for backend, localStorage for frontend user data
 
 ## Key Features
-- Music discovery and trending songs
+- Music discovery with enhanced search (50 songs per search)
+- Admin-controlled trending/featured songs
 - Music player with earnings system (50 Rp per 30 seconds)
 - User dashboard with balance tracking
 - Admin dashboard for withdrawal request management
-- Mock YouTube Music API integration
+- Admin music management (add, remove, reorder featured songs)
+- Real YouTube Music API integration via ytmusicapi
 
 ## User Preferences
 - Indonesian language interface (Bahasa Indonesia) - untuk semua komunikasi dan interface

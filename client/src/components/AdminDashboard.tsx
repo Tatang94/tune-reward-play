@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Shield, Clock, CheckCircle, XCircle, Users, DollarSign, ArrowLeft, LogOut } from 'lucide-react';
+import { Shield, Clock, CheckCircle, XCircle, Users, DollarSign, ArrowLeft, LogOut, Music } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'wouter';
 import { 
   Table, 
@@ -13,6 +14,7 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
+import FeaturedSongsManager from '@/components/FeaturedSongsManager';
 
 interface WithdrawRequest {
   id: number;
@@ -191,9 +193,23 @@ export function AdminDashboard() {
       {/* Dashboard Content */}
       <div className="pt-4">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-foreground">Dashboard Penarikan</h2>
-          <p className="text-muted-foreground">Kelola permintaan penarikan dan pantau aktivitas platform</p>
+          <h2 className="text-2xl font-bold text-foreground">Admin Dashboard</h2>
+          <p className="text-muted-foreground">Kelola platform MusicReward</p>
         </div>
+
+        <Tabs defaultValue="withdrawals" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="withdrawals" className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Penarikan Dana
+            </TabsTrigger>
+            <TabsTrigger value="music" className="flex items-center gap-2">
+              <Music className="h-4 w-4" />
+              Kelola Musik
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="withdrawals" className="space-y-6">
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -323,6 +339,12 @@ export function AdminDashboard() {
             )}
           </div>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="music" className="space-y-6">
+            <FeaturedSongsManager />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

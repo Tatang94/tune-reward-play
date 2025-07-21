@@ -13,7 +13,7 @@ class YTMusicService:
     def __init__(self):
         self.ytmusic = YTMusic()
     
-    def search_songs(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
+    def search_songs(self, query: str, limit: int = 50) -> List[Dict[str, Any]]:
         """Search for songs on YouTube Music"""
         try:
             results = self.ytmusic.search(query, filter="songs", limit=limit)
