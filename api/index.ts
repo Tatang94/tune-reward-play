@@ -13,21 +13,28 @@ app.use(express.urlencoded({ extended: false }));
 // Initialize Vercel database and default admin account
 async function initializeVercelApp() {
   try {
+    console.log("Initializing Vercel app...");
+    
     // Initialize database tables
     await initializeVercelDatabase();
+    console.log("Database tables initialized");
     
     // Create default admin account
     const existingAdmin = await vercelStorage.getAdminByUsername("admin");
     if (!existingAdmin) {
+      console.log("Creating default admin account...");
       const hashedPassword = await bcrypt.hash("audio", 10);
       await vercelStorage.createAdmin({
         username: "admin",
         password: hashedPassword,
       });
       console.log("Default admin account created: admin/audio");
+    } else {
+      console.log("Admin account already exists");
     }
   } catch (error) {
     console.error("Failed to initialize Vercel app:", error);
+    throw error;
   }
 }
 
@@ -87,30 +94,43 @@ function callPythonService(...args: string[]): Promise<any> {
 // API Routes
 app.post("/api/admin/login", async (req, res) => {
   try {
+    // Ensure database is initialized before login attempt
+    await initializeVercelApp();
+    
     const { username, password } = req.body;
+    console.log("Login attempt for username:", username);
 
     if (!username || !password) {
+      console.log("Missing username or password");
       return res.status(400).json({ error: "Username and password required" });
     }
 
     const admin = await vercelStorage.getAdminByUsername(username);
+    console.log("Admin found:", admin ? "Yes" : "No");
+    
     if (!admin) {
+      console.log("Admin not found for username:", username);
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
     const isValidPassword = await bcrypt.compare(password, admin.password);
+    console.log("Password valid:", isValidPassword);
+    
     if (!isValidPassword) {
+      console.log("Invalid password for username:", username);
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
     const token = await vercelStorage.createAdminSession(admin.id);
+    console.log("Token created successfully");
+    
     res.json({ 
       token, 
       admin: { id: admin.id, username: admin.username } 
     });
   } catch (error) {
     console.error("Admin login error:", error);
-    res.status(500).json({ error: "Login failed" });
+    res.status(500).json({ error: "Login failed", details: error.message });
   }
 });
 
@@ -296,9 +316,43 @@ app.get("/api/ytmusic/song/:videoId", async (req, res) => {
   }
 });
 
+// Test endpoint for debugging
+app.get("/api/test", async (req, res) => {
+  try {
+    await initializeVercelApp();
+    
+    // Check admin count
+    const admin = await vercelStorage.getAdminByUsername("admin");
+    
+    res.json({ 
+      status: "OK", 
+      database: "Connected",
+      adminExists: !!admin,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      status: "ERROR", 
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Initialize on startup
-initializeVercelApp();
+initializeVercelApp().catch(console.error);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Set CORS headers for API routes
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+  
   return app(req, res);
 }

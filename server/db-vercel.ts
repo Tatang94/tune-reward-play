@@ -8,6 +8,12 @@ export const db = drizzle(sql, { schema });
 // Initialize database tables for Vercel
 export async function initializeVercelDatabase() {
   try {
+    console.log("Starting Vercel database initialization...");
+    
+    // Test database connection first
+    const connectionTest = await sql`SELECT 1 as test`;
+    console.log("Database connection test:", connectionTest.rows[0]?.test === 1 ? "SUCCESS" : "FAILED");
+    
     // Check if tables exist and create them if needed
     await sql`
       CREATE TABLE IF NOT EXISTS users (
@@ -73,6 +79,14 @@ export async function initializeVercelDatabase() {
     `;
 
     console.log("Vercel database tables initialized successfully - clean setup without demo data");
+    
+    // Log table existence for debugging
+    const tablesCheck = await sql`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `;
+    console.log("Existing tables:", tablesCheck.rows.map(r => r.table_name));
   } catch (error) {
     console.error("Error initializing Vercel database:", error);
     throw error;

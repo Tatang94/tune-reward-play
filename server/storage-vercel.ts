@@ -15,7 +15,9 @@ export class VercelStorage {
   // Admin management
   async getAdminByUsername(username: string): Promise<Admin | null> {
     try {
+      console.log("Looking for admin with username:", username);
       const result = await db.select().from(admins).where(eq(admins.username, username)).limit(1);
+      console.log("Admin query result:", result.length > 0 ? "Found" : "Not found");
       return result[0] || null;
     } catch (error) {
       console.error("Error getting admin by username:", error);
@@ -25,7 +27,9 @@ export class VercelStorage {
 
   async createAdmin(adminData: InsertAdmin): Promise<Admin> {
     try {
+      console.log("Creating admin with username:", adminData.username);
       const result = await db.insert(admins).values(adminData).returning();
+      console.log("Admin created successfully with ID:", result[0]?.id);
       return result[0];
     } catch (error) {
       console.error("Error creating admin:", error);
