@@ -4,6 +4,12 @@
 A music streaming reward application that allows users to listen to music and earn rewards. Users can discover trending songs, play music, and accumulate earnings that can be withdrawn through an admin dashboard.
 
 ## Recent Changes
+- **July 21, 2025**: Admin Login System Dihapus - Akses Langsung ke /monk
+  - Sistem autentikasi admin dihapus sepenuhnya untuk kemudahan akses
+  - Admin panel dapat diakses langsung melalui URL /monk tanpa login
+  - Semua API endpoints admin tidak memerlukan token autentikasi lagi
+  - AdminLogin.tsx dihapus dan diganti dengan akses langsung ke AdminDashboard
+  - Navigasi admin disederhanakan dengan tombol "Kembali" ke beranda
 - **July 21, 2025**: Migration from Replit Agent to Standard Replit Environment COMPLETED
   - Database configuration converted to memory storage for Replit compatibility
   - ytmusicapi Python package successfully installed and configured

@@ -35,25 +35,15 @@ export function AdminDashboard() {
     rejected: 0,
     totalAmount: 0
   });
-  const [adminUser, setAdminUser] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    const user = localStorage.getItem('adminUser');
-    if (user) {
-      setAdminUser(JSON.parse(user));
-    }
     loadWithdrawRequests();
   }, []);
 
   const loadWithdrawRequests = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch('/api/admin/withdrawals', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await fetch('/api/admin/withdrawals');
 
       if (response.ok) {
         const data = await response.json();
@@ -78,12 +68,10 @@ export function AdminDashboard() {
 
   const updateRequestStatus = async (requestId: number, status: 'approved' | 'rejected') => {
     try {
-      const token = localStorage.getItem('adminToken');
       const response = await fetch(`/api/admin/withdrawals/${requestId}`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ status })
       });
@@ -108,22 +96,8 @@ export function AdminDashboard() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      const token = localStorage.getItem('adminToken');
-      await fetch('/api/admin/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      localStorage.removeItem('adminToken');
-      localStorage.removeItem('adminUser');
-      window.location.reload();
-    }
+  const handleBackToHome = () => {
+    window.location.href = '/';
   };
 
   const formatCurrency = (amount: number) => {
@@ -165,7 +139,7 @@ export function AdminDashboard() {
             <div>
               <h1 className="text-xl font-bold text-foreground">Admin Panel</h1>
               <p className="text-sm text-muted-foreground">
-                Selamat datang, {adminUser?.username || 'Admin'}
+                Panel Admin - Akses Langsung
               </p>
             </div>
           </div>
@@ -180,11 +154,11 @@ export function AdminDashboard() {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={handleLogout}
-              className="border-border text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              onClick={handleBackToHome}
+              className="border-border"
             >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Kembali
             </Button>
           </div>
         </div>

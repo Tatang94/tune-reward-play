@@ -9,74 +9,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize default admin account if it doesn't exist
   await initializeDefaultAdmin();
 
-  // Admin authentication middleware
-  const requireAdminAuth = async (req: any, res: any, next: any) => {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    
-    if (!token) {
-      return res.status(401).json({ error: "Token required" });
-    }
+  // No authentication middleware - direct access to admin features
 
-    const admin = await storage.validateAdminSession(token);
-    if (!admin) {
-      return res.status(401).json({ error: "Invalid or expired token" });
-    }
+  // Admin routes - no authentication required
 
-    req.admin = admin;
-    next();
-  };
-
-  // Admin login
-  app.post("/api/admin/login", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-
-      if (!username || !password) {
-        return res.status(400).json({ error: "Username and password required" });
-      }
-
-      const admin = await storage.getAdminByUsername(username);
-      if (!admin) {
-        return res.status(401).json({ error: "Invalid credentials" });
-      }
-
-      const isValidPassword = await bcrypt.compare(password, admin.password);
-      if (!isValidPassword) {
-        return res.status(401).json({ error: "Invalid credentials" });
-      }
-
-      const token = await storage.createAdminSession(admin.id);
-      res.json({ 
-        token, 
-        admin: { id: admin.id, username: admin.username } 
-      });
-    } catch (error) {
-      console.error("Admin login error:", error);
-      res.status(500).json({ error: "Login failed" });
-    }
-  });
-
-  // Admin logout
-  app.post("/api/admin/logout", requireAdminAuth, async (req: any, res) => {
-    try {
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (token) {
-        await storage.deleteAdminSession(token);
-      }
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Admin logout error:", error);
-      res.status(500).json({ error: "Logout failed" });
-    }
-  });
-
-  // Get admin profile
-  app.get("/api/admin/profile", requireAdminAuth, async (req: any, res) => {
-    res.json({ admin: { id: req.admin.id, username: req.admin.username } });
-  });
-
-  // Get withdraw requests (admin only)
-  app.get("/api/admin/withdrawals", requireAdminAuth, async (req, res) => {
+  // Get withdraw requests
+  app.get("/api/admin/withdrawals", async (req, res) => {
     try {
       const requests = await storage.getWithdrawRequests();
       res.json({ requests });
@@ -86,8 +24,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update withdraw request status (admin only)
-  app.patch("/api/admin/withdrawals/:id", requireAdminAuth, async (req, res) => {
+  // Update withdraw request status
+  app.patch("/api/admin/withdrawals/:id", async (req, res) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
@@ -104,8 +42,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Featured songs management (admin only)
-  app.get("/api/admin/featured-songs", requireAdminAuth, async (req, res) => {
+  // Featured songs management
+  app.get("/api/admin/featured-songs", async (req, res) => {
     try {
       const songs = await storage.getFeaturedSongs();
       res.json({ songs });
@@ -115,7 +53,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/featured-songs", requireAdminAuth, async (req, res) => {
+  app.post("/api/admin/featured-songs", async (req, res) => {
     try {
       const { videoId, title, artist, thumbnail, duration, displayOrder } = req.body;
 
@@ -140,7 +78,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/admin/featured-songs/:id", requireAdminAuth, async (req, res) => {
+  app.delete("/api/admin/featured-songs/:id", async (req, res) => {
     try {
       const { id } = req.params;
       await storage.removeFeaturedSong(parseInt(id));
@@ -151,7 +89,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/admin/featured-songs/:id/order", requireAdminAuth, async (req, res) => {
+  app.patch("/api/admin/featured-songs/:id/order", async (req, res) => {
     try {
       const { id } = req.params;
       const { displayOrder } = req.body;
@@ -168,7 +106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/admin/featured-songs/:id/status", requireAdminAuth, async (req, res) => {
+  app.patch("/api/admin/featured-songs/:id/status", async (req, res) => {
     try {
       const { id } = req.params;
       const { isActive } = req.body;
