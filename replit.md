@@ -4,14 +4,14 @@
 A music streaming reward application that allows users to listen to music and earn rewards. Users can discover trending songs, play music, and accumulate earnings that can be withdrawn through an admin dashboard.
 
 ## Recent Changes
-- **July 21, 2025**: Implementasi YouTube Data API v3 Resmi
-  - Hapus ytmusicapi Python dependency dan ganti dengan YouTube Data API v3
-  - Menggunakan API key resmi: AIzaSyCdgmEsPW59-U4bNKj-u-FSHHVaFfFO_VM
-  - Pencarian musik langsung dari YouTube dengan hasil 25 lagu
-  - Trending songs fallback ke "lagu indonesia terpopuler 2025" dari YouTube
-  - Mendapat data asli dengan thumbnail, title, dan channel dari YouTube
-  - Player musik tetap sebagai placeholder sederhana
-  - Aplikasi berjalan dengan API resmi yang stabil dan reliabel
+- **July 21, 2025**: Simplifikasi Interface - Admin-Only Music Management
+  - Hapus tab "Temukan Musik" dan fitur pencarian musik untuk user
+  - Hanya admin yang bisa menambahkan/mengelola musik melalui panel /monk
+  - Tab "Lagu Trending" menampilkan musik yang sudah ditambahkan admin
+  - Player YouTube embedded berfungsi dengan timer reward 30 detik
+  - Interface lebih sederhana: Trending -> Player -> Dashboard
+  - Data musik masih menggunakan YouTube Data API v3 resmi
+  - Fallback ke "lagu indonesia terpopuler 2025" jika admin belum add musik
 - **Juli 21, 2025**: Migrasi Berhasil dari Replit Agent ke Replit Environment
   - ytmusicapi Python package berhasil diinstall dan berfungsi dengan baik
   - Tampilan saldo diperbaiki dengan desain modern gradient dan shadow
