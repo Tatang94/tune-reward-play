@@ -4,6 +4,13 @@
 A music streaming reward application that allows users to listen to music and earn rewards. Users can discover trending songs, play music, and accumulate earnings that can be withdrawn through an admin dashboard.
 
 ## Recent Changes
+- **July 21, 2025**: Admin Authentication System with Supabase
+  - Sistem login admin dengan database PostgreSQL (Supabase)
+  - Kredensial admin: username "admin", password "audio"
+  - Autentikasi aman dengan bcrypt dan session tokens
+  - Protected admin routes dengan middleware authentication
+  - Admin dashboard dengan fungsi logout dan navigasi
+  - Database tables: admins, admin_sessions, users, withdraw_requests
 - **July 21, 2025**: Enhanced Balance Display and YouTube Music Integration
   - Improved balance display styling with larger text and gradient background
   - Integrated real YouTube Music API using ytmusicapi Python library
@@ -35,9 +42,11 @@ A music streaming reward application that allows users to listen to music and ea
 - Mock YouTube Music API integration
 
 ## User Preferences
-- Indonesian language interface (Bahasa Indonesia)
+- Indonesian language interface (Bahasa Indonesia) - untuk semua komunikasi dan interface
 - Reward-based music streaming concept
 - Simple, clean UI with card-based layouts
+- Admin panel dengan kredensial: admin/audio
+- Database menggunakan Supabase
 
 ## Technical Notes
 - Uses real YouTube Music API via ytmusicapi Python library
