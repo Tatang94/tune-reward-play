@@ -4,6 +4,7 @@ import { spawn } from "child_process";
 import path from "path";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
+import ytdl from "ytdl-core";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize default admin account if it doesn't exist
@@ -177,6 +178,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Song details error:", error);
       res.status(500).json({ error: "Failed to get song details" });
+    }
+  });
+
+  // Audio streaming endpoint using ytdl-core
+  app.get("/api/audio/stream/:videoId", async (req, res) => {
+    try {
+      const { videoId } = req.params;
+      
+      // Validate YouTube video ID
+      if (!ytdl.validateID(videoId)) {
+        return res.status(400).json({ error: "Invalid video ID" });
+      }
+
+      // Get video info first
+      const info = await ytdl.getInfo(videoId);
+      const title = info.videoDetails.title;
+      
+      // Set response headers for audio streaming
+      res.setHeader('Content-Type', 'audio/webm');
+      res.setHeader('Content-Disposition', `inline; filename="${title}.webm"`);
+      res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      
+      // Stream audio with best quality
+      const audioStream = ytdl(videoId, {
+        filter: 'audioonly',
+        quality: 'highestaudio'
+      });
+      
+      // Pipe the audio stream to response
+      audioStream.pipe(res);
+      
+      // Handle stream errors
+      audioStream.on('error', (error) => {
+        console.error('Audio stream error:', error);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Failed to stream audio" });
+        }
+      });
+      
+    } catch (error) {
+      console.error("Stream audio error:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to stream audio" });
+      }
     }
   });
 

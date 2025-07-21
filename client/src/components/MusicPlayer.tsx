@@ -23,45 +23,47 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!currentSong) return;
+    if (!currentSong || !audioRef.current) return;
 
     setHasEarned(false);
     setCurrentTime(0);
-    setDuration(180); // 3 minutes demo duration
     setIsPlaying(false);
+
+    // Set the audio source to our streaming endpoint
+    audioRef.current.src = `/api/audio/stream/${currentSong.id}`;
+    audioRef.current.load();
   }, [currentSong]);
 
-  // Simulate progress and earnings for demo
+  // Real audio progress tracking
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (isPlaying) {
-      interval = setInterval(() => {
-        setCurrentTime(prev => {
-          const newTime = prev + 1;
-          
-          // Award earnings after 30 seconds
-          if (!hasEarned && newTime >= 30) {
-            awardEarnings();
-            setHasEarned(true);
-          }
-          
-          // Auto complete after duration
-          if (newTime >= duration) {
-            setIsPlaying(false);
-            onSongComplete();
-            return 0;
-          }
-          
-          return newTime;
-        });
-      }, 1000);
-    }
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const updateTime = () => setCurrentTime(audio.currentTime);
+    const updateDuration = () => setDuration(audio.duration);
+    const handleEnded = () => {
+      setIsPlaying(false);
+      onSongComplete();
+    };
+
+    audio.addEventListener('timeupdate', updateTime);
+    audio.addEventListener('loadedmetadata', updateDuration);
+    audio.addEventListener('ended', handleEnded);
 
     return () => {
-      if (interval) clearInterval(interval);
+      audio.removeEventListener('timeupdate', updateTime);
+      audio.removeEventListener('loadedmetadata', updateDuration);
+      audio.removeEventListener('ended', handleEnded);
     };
-  }, [isPlaying, hasEarned, duration, onSongComplete]);
+  }, [onSongComplete]);
+
+  // Award earnings after 30 seconds of real playback
+  useEffect(() => {
+    if (!hasEarned && currentTime >= 30 && isPlaying) {
+      awardEarnings();
+      setHasEarned(true);
+    }
+  }, [currentTime, isPlaying, hasEarned]);
 
   const awardEarnings = () => {
     const userData = getStorageData<User>(StorageKeys.USER_DATA, {
@@ -90,14 +92,37 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
   };
 
   const togglePlayPause = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      audio.pause();
+    } else {
+      audio.play().catch(error => {
+        console.error('Failed to play audio:', error);
+        toast({
+          title: "Audio Error",
+          description: "Gagal memutar audio. Silakan coba lagi.",
+          variant: "destructive"
+        });
+      });
+    }
     setIsPlaying(!isPlaying);
   };
 
   const handleSeek = (value: number[]) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    
+    audio.currentTime = value[0];
     setCurrentTime(value[0]);
   };
 
   const handleVolumeChange = (value: number[]) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    
+    audio.volume = value[0] / 100;
     setVolume(value[0]);
   };
 
@@ -120,17 +145,35 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
 
   return (
     <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
-      {/* YouTube Player */}
-      <div className="mb-4">
-        <iframe
-          width="100%"
-          height="200"
-          src={`https://www.youtube.com/embed/${currentSong.id}?enablejsapi=1&autoplay=0&controls=1&modestbranding=1&rel=0`}
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="rounded-lg"
-        />
+      {/* Hidden Audio Element for real streaming */}
+      <audio
+        ref={audioRef}
+        preload="metadata"
+        className="hidden"
+      />
+      
+      {/* Visual Player */}
+      <div className="mb-4 relative">
+        <div className="aspect-video bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg flex items-center justify-center">
+          <img 
+            src={currentSong.thumbnail} 
+            alt={currentSong.title}
+            className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+          />
+          <div className="absolute inset-0 bg-black/30 rounded-lg flex items-center justify-center">
+            <Button
+              onClick={togglePlayPause}
+              size="lg"
+              className="h-16 w-16 rounded-full bg-primary/90 hover:bg-primary text-primary-foreground shadow-lg"
+            >
+              {isPlaying ? (
+                <Pause className="h-8 w-8" />
+              ) : (
+                <Play className="h-8 w-8 ml-1" />
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
       
       {/* Song Info */}

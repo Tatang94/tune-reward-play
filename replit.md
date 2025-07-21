@@ -4,6 +4,13 @@
 A music streaming reward application that allows users to listen to music and earn rewards. Users can discover trending songs, play music, and accumulate earnings that can be withdrawn through an admin dashboard.
 
 ## Recent Changes
+- **July 21, 2025**: Implementasi Real Audio Streaming dengan ytdl-core
+  - Tambah ytdl-core package untuk streaming audio asli dari YouTube
+  - Buat endpoint /api/audio/stream/:videoId untuk Replit dan Vercel
+  - Update MusicPlayer dengan HTML5 audio element dan real streaming
+  - Ganti iframe YouTube dengan visual player yang elegant
+  - Audio streaming bekerja di kedua environment (Replit + Vercel)
+  - Real-time progress tracking dan earnings berdasarkan playback asli
 - **July 21, 2025**: Admin Login System Dihapus - Akses Langsung ke /monk
   - Sistem autentikasi admin dihapus sepenuhnya untuk kemudahan akses
   - Admin panel dapat diakses langsung melalui URL /monk tanpa login

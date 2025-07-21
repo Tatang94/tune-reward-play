@@ -4,6 +4,7 @@ import { initializeVercelDatabase } from "../server/db-vercel";
 import bcrypt from "bcrypt";
 import { spawn } from "child_process";
 import path from "path";
+import ytdl from "ytdl-core";
 
 // Initialize Vercel database and default admin account
 async function initializeVercelApp() {
@@ -248,6 +249,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       const result = await callPythonService("song", videoId);
       return res.json(result);
+    }
+    
+    // Audio streaming endpoint for Vercel
+    if (pathname.startsWith('/api/audio/stream/') && method === 'GET') {
+      const videoId = pathname.split('/').pop();
+      
+      if (!videoId || !ytdl.validateID(videoId)) {
+        return res.status(400).json({ error: "Invalid video ID" });
+      }
+
+      try {
+        // Get video info first
+        const info = await ytdl.getInfo(videoId);
+        const title = info.videoDetails.title;
+        
+        // Set response headers for audio streaming
+        res.setHeader('Content-Type', 'audio/webm');
+        res.setHeader('Content-Disposition', `inline; filename="${title}.webm"`);
+        res.setHeader('Accept-Ranges', 'bytes');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        
+        // Stream audio with best quality
+        const audioStream = ytdl(videoId, {
+          filter: 'audioonly',
+          quality: 'highestaudio'
+        });
+        
+        // Pipe the audio stream to response
+        audioStream.pipe(res);
+        
+        // Handle stream errors
+        audioStream.on('error', (error) => {
+          console.error('Audio stream error:', error);
+          if (!res.headersSent) {
+            res.status(500).json({ error: "Failed to stream audio" });
+          }
+        });
+        
+        return; // Don't proceed to default 404
+        
+      } catch (error) {
+        console.error("Stream audio error:", error);
+        return res.status(500).json({ error: "Failed to stream audio" });
+      }
     }
     
     // Default 404
