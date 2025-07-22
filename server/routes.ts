@@ -75,14 +75,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Remove featured song
-  app.delete("/api/admin/featured-songs/:videoId", async (req, res) => {
+  app.delete("/api/admin/featured-songs/:id", async (req, res) => {
     try {
-      const { videoId } = req.params;
-      await storage.removeFeaturedSong(parseInt(videoId));
+      const { id } = req.params;
+      await storage.removeFeaturedSong(parseInt(id));
       res.json({ success: true });
     } catch (error) {
       console.error("Remove featured song error:", error);
       res.status(500).json({ error: "Failed to remove featured song" });
+    }
+  });
+
+  // Toggle featured song status
+  app.patch("/api/admin/featured-songs/:id/toggle", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { isActive } = req.body;
+      
+      await storage.toggleFeaturedSongStatus(parseInt(id), isActive);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Toggle featured song error:", error);
+      res.status(500).json({ error: "Failed to toggle featured song status" });
     }
   });
 
@@ -145,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=${limit}&q=${encodeURIComponent(query + ' music')}&type=video&key=${YOUTUBE_API_KEY}`;
       
       const response = await fetch(searchUrl);
-      const data = await response.json();
+      const data = await response.json() as any;
       
       if (!response.ok) {
         console.error('YouTube API Error:', data);
@@ -190,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&q=lagu+indonesia+terpopuler+2025&type=video&order=relevance&key=${YOUTUBE_API_KEY}`;
         
         const response = await fetch(searchUrl);
-        const data = await response.json();
+        const data = await response.json() as any;
         
         if (!response.ok) {
           console.error('YouTube API Error:', data);
@@ -239,7 +253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const videoUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${YOUTUBE_API_KEY}`;
       
       const response = await fetch(videoUrl);
-      const data = await response.json();
+      const data = await response.json() as any;
       
       if (!response.ok || !data.items?.length) {
         return res.json({ 
@@ -254,7 +268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const item = data.items[0];
+      const item = data.items[0] as any;
       res.json({ 
         song: {
           id: videoId,

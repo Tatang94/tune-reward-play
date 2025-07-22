@@ -14,7 +14,7 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import FeaturedSongsManager from '@/components/FeaturedSongsManager';
+import { AdminMusicManager } from '@/components/AdminMusicManager';
 
 interface WithdrawRequest {
   id: number;
@@ -316,7 +316,7 @@ export function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="music" className="space-y-6">
-            <FeaturedSongsManager />
+            <AdminMusicManager />
           </TabsContent>
         </Tabs>
       </div>
