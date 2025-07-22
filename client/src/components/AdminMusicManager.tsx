@@ -36,9 +36,11 @@ export function AdminMusicManager() {
   const queryClient = useQueryClient();
 
   // Get featured songs
-  const { data: featuredSongs, isLoading } = useQuery({
+  const { data: featuredData, isLoading } = useQuery({
     queryKey: ['/api/admin/featured-songs'],
   });
+
+  const featuredSongs = featuredData?.songs || [];
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -199,12 +201,12 @@ export function AdminMusicManager() {
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Music className="h-5 w-5" />
-          Daftar Lagu Featured ({featuredSongs?.songs?.length || 0})
+          Daftar Lagu Featured ({featuredSongs.length || 0})
         </h3>
         
         {isLoading ? (
           <p className="text-muted-foreground">Memuat...</p>
-        ) : featuredSongs?.songs?.length === 0 ? (
+        ) : featuredSongs.length === 0 ? (
           <div className="text-center py-8">
             <Music className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
             <p className="text-muted-foreground">Belum ada lagu featured</p>
@@ -214,7 +216,7 @@ export function AdminMusicManager() {
           </div>
         ) : (
           <div className="space-y-3">
-            {featuredSongs.songs.map((song: FeaturedSong, index: number) => (
+            {featuredSongs.map((song: FeaturedSong, index: number) => (
               <div
                 key={song.id}
                 className={`flex items-center gap-3 p-4 border rounded-lg ${
