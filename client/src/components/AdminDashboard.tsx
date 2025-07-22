@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Clock, CheckCircle, XCircle, Users, DollarSign, ArrowLeft, LogOut, Music } from 'lucide-react';
+import { Shield, Clock, CheckCircle, XCircle, Users, DollarSign, ArrowLeft, LogOut, Music, Settings } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { AdminMusicManager } from '@/components/AdminMusicManager';
+import { AdSettingsManager } from '@/components/AdSettingsManager';
 
 interface WithdrawRequest {
   id: number;
@@ -155,7 +156,7 @@ export function AdminDashboard() {
       <div className="pt-6">
 
         <Tabs defaultValue="withdrawals" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 bg-card/50 border border-border/50">
+          <TabsList className="grid w-full grid-cols-3 bg-card/50 border border-border/50">
             <TabsTrigger value="withdrawals" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <DollarSign className="h-4 w-4" />
               Penarikan Dana
@@ -163,6 +164,10 @@ export function AdminDashboard() {
             <TabsTrigger value="music" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Music className="h-4 w-4" />
               Kelola Musik
+            </TabsTrigger>
+            <TabsTrigger value="ads" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Settings className="h-4 w-4" />
+              Pengaturan Iklan
             </TabsTrigger>
           </TabsList>
 
@@ -300,6 +305,10 @@ export function AdminDashboard() {
 
           <TabsContent value="music" className="space-y-6">
             <AdminMusicManager />
+          </TabsContent>
+
+          <TabsContent value="ads" className="space-y-6">
+            <AdSettingsManager />
           </TabsContent>
         </Tabs>
       </div>

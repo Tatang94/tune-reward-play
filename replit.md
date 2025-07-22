@@ -4,6 +4,12 @@
 A music streaming reward application that allows users to listen to music and earn rewards. Users can discover trending songs, play music, and accumulate earnings that can be withdrawn through an admin dashboard.
 
 ## Recent Changes
+- **July 22, 2025**: Fitur Pasang Iklan Adsterra - Form Template Script
+  - Menambahkan fitur pengaturan iklan Adsterra di admin panel /monk
+  - Form input untuk 4 jenis script: Header, Footer, Banner, dan Popup/Native
+  - Fitur preview script dan toggle aktif/nonaktif iklan
+  - Interface mudah untuk admin paste script dari Adsterra
+  - Dukungan lengkap di kedua environment: Replit dan Vercel
 - **July 22, 2025**: Simplifikasi Admin Route - Hanya /monk
   - Menghapus route /admin, sekarang admin panel hanya bisa diakses via /monk
   - Perubahan diterapkan di kedua environment: Replit dan Vercel

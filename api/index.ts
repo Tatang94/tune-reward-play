@@ -275,6 +275,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.json({ success: true, request });
     }
 
+    // Ad settings endpoints
+    if (pathname === '/api/admin/ad-settings' && method === 'GET') {
+      const settings = await vercelStorage.getAdSettings();
+      return res.json({ settings });
+    }
+
+    if (pathname === '/api/admin/ad-settings' && method === 'POST') {
+      const { headerScript, footerScript, bannerScript, popupScript, isEnabled } = req.body;
+      
+      await vercelStorage.saveAdSettings({
+        headerScript: headerScript || '',
+        footerScript: footerScript || '',
+        bannerScript: bannerScript || '',
+        popupScript: popupScript || '',
+        isEnabled: isEnabled || false
+      });
+
+      return res.json({ success: true });
+    }
+
     // 404 for other routes
     return res.status(404).json({ error: "Route not found" });
     

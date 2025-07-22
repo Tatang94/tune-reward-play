@@ -195,4 +195,28 @@ export class MemoryStorage implements IStorage {
       song.isActive = isActive;
     }
   }
+
+  async getAdSettings(): Promise<any> {
+    const headerScript = this.adminSettings.find(s => s.settingKey === 'headerScript')?.settingValue || '';
+    const footerScript = this.adminSettings.find(s => s.settingKey === 'footerScript')?.settingValue || '';
+    const bannerScript = this.adminSettings.find(s => s.settingKey === 'bannerScript')?.settingValue || '';
+    const popupScript = this.adminSettings.find(s => s.settingKey === 'popupScript')?.settingValue || '';
+    const isEnabled = this.adminSettings.find(s => s.settingKey === 'adsEnabled')?.settingValue === 'true';
+
+    return {
+      headerScript,
+      footerScript,
+      bannerScript,
+      popupScript,
+      isEnabled
+    };
+  }
+
+  async saveAdSettings(settings: any): Promise<void> {
+    await this.setAdminSetting('headerScript', settings.headerScript || '');
+    await this.setAdminSetting('footerScript', settings.footerScript || '');
+    await this.setAdminSetting('bannerScript', settings.bannerScript || '');
+    await this.setAdminSetting('popupScript', settings.popupScript || '');
+    await this.setAdminSetting('adsEnabled', settings.isEnabled ? 'true' : 'false');
+  }
 }

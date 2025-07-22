@@ -37,6 +37,8 @@ export interface IStorage {
   // Admin settings operations
   getAdminSetting(key: string): Promise<AdminSettings | undefined>;
   setAdminSetting(key: string, value: string): Promise<void>;
+  getAdSettings(): Promise<any>;
+  saveAdSettings(settings: any): Promise<void>;
   
   // Featured songs operations
   getFeaturedSongs(): Promise<FeaturedSong[]>;

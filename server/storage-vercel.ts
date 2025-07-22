@@ -252,6 +252,48 @@ export class VercelStorage {
       throw error;
     }
   }
+
+  async getAdSettings(): Promise<any> {
+    try {
+      const settingsRows = await db.select().from(adminSettings);
+      
+      const headerScript = settingsRows.find(s => s.settingKey === 'headerScript')?.settingValue || '';
+      const footerScript = settingsRows.find(s => s.settingKey === 'footerScript')?.settingValue || '';
+      const bannerScript = settingsRows.find(s => s.settingKey === 'bannerScript')?.settingValue || '';
+      const popupScript = settingsRows.find(s => s.settingKey === 'popupScript')?.settingValue || '';
+      const isEnabled = settingsRows.find(s => s.settingKey === 'adsEnabled')?.settingValue === 'true';
+
+      return {
+        headerScript,
+        footerScript,
+        bannerScript,
+        popupScript,
+        isEnabled
+      };
+    } catch (error) {
+      console.error("Error getting ad settings:", error);
+      return {
+        headerScript: '',
+        footerScript: '',
+        bannerScript: '',
+        popupScript: '',
+        isEnabled: false
+      };
+    }
+  }
+
+  async saveAdSettings(settings: any): Promise<void> {
+    try {
+      await this.setAdminSetting('headerScript', settings.headerScript || '');
+      await this.setAdminSetting('footerScript', settings.footerScript || '');
+      await this.setAdminSetting('bannerScript', settings.bannerScript || '');
+      await this.setAdminSetting('popupScript', settings.popupScript || '');
+      await this.setAdminSetting('adsEnabled', settings.isEnabled ? 'true' : 'false');
+    } catch (error) {
+      console.error("Error saving ad settings:", error);
+      throw error;
+    }
+  }
 }
 
 export const vercelStorage = new VercelStorage();

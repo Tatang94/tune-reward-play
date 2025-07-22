@@ -289,6 +289,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Ad settings endpoints
+  app.get("/api/admin/ad-settings", async (req, res) => {
+    try {
+      const settings = await storage.getAdSettings();
+      res.json({ settings });
+    } catch (error) {
+      console.error("Get ad settings error:", error);
+      res.status(500).json({ error: "Failed to get ad settings" });
+    }
+  });
+
+  app.post("/api/admin/ad-settings", async (req, res) => {
+    try {
+      const { headerScript, footerScript, bannerScript, popupScript, isEnabled } = req.body;
+      
+      await storage.saveAdSettings({
+        headerScript: headerScript || '',
+        footerScript: footerScript || '',
+        bannerScript: bannerScript || '',
+        popupScript: popupScript || '',
+        isEnabled: isEnabled || false
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Save ad settings error:", error);
+      res.status(500).json({ error: "Failed to save ad settings" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
