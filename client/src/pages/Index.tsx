@@ -61,11 +61,11 @@ const Index = () => {
               </div>
             </div>
             
-            <div className="relative bg-gradient-to-r from-emerald-500 to-green-500 px-4 py-3 rounded-xl shadow-md">
-              <div className="absolute inset-0 bg-white/10 rounded-xl backdrop-blur-sm"></div>
+            <div className="relative bg-gradient-to-r from-emerald-500 to-green-500 px-3 py-2 rounded-lg shadow-md">
+              <div className="absolute inset-0 bg-white/10 rounded-lg backdrop-blur-sm"></div>
               <div className="relative z-10 text-center">
                 <p className="text-xs font-medium text-white/80 tracking-wide">Saldo Anda</p>
-                <p className="text-xl font-bold text-white">Rp {currentBalance.toLocaleString('id-ID')}</p>
+                <p className="text-sm font-bold text-white">Rp {currentBalance.toLocaleString('id-ID')}</p>
               </div>
             </div>
           </div>
