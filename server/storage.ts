@@ -16,8 +16,6 @@ import {
   type FeaturedSong,
   type InsertFeaturedSong
 } from "@shared/schema";
-import { randomBytes } from "crypto";
-
 export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
@@ -48,6 +46,8 @@ export interface IStorage {
   toggleFeaturedSongStatus(id: number, isActive: boolean): Promise<void>;
 }
 
+// DatabaseStorage commented out - using MemoryStorage for Replit compatibility
+/* 
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -198,5 +198,8 @@ export class DatabaseStorage implements IStorage {
       .where(eq(featuredSongs.id, id));
   }
 }
+*/
 
-export const storage = new DatabaseStorage();
+// Use MemoryStorage for Replit compatibility (no database required)
+import { MemoryStorage } from "./memory-storage";
+export const storage = new MemoryStorage();
