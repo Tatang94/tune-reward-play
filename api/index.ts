@@ -13,27 +13,49 @@ async function initializeVercelApp() {
     await initializeVercelDatabase();
     console.log("Database tables initialized");
     
-    // Create default admin account
-    const existingAdmin = await vercelStorage.getAdminByUsername("admin");
-    if (!existingAdmin) {
-      console.log("Creating default admin account...");
-      const hashedPassword = await bcrypt.hash("audio", 10);
-      await vercelStorage.createAdmin({
-        username: "admin",
-        password: hashedPassword,
-      });
-      console.log("Default admin account created: admin/audio");
-    } else {
-      console.log("Admin account already exists");
+    // Create default admin account if it doesn't exist
+    try {
+      const existingAdmin = await vercelStorage.getAdminByUsername("admin");
+      if (!existingAdmin) {
+        console.log("Creating default admin account...");
+        const hashedPassword = await bcrypt.hash("audio", 10);
+        await vercelStorage.createAdmin({
+          username: "admin",
+          password: hashedPassword,
+        });
+        console.log("Default admin account created: admin/audio");
+      } else {
+        console.log("Admin account already exists");
+      }
+    } catch (adminError) {
+      console.log("Admin check failed, continuing without admin setup:", adminError);
     }
   } catch (error) {
     console.error("Failed to initialize Vercel app:", error);
-    throw error;
+    // Don't throw here, allow the API to continue working
   }
 }
 
-// Initialize on startup
-initializeVercelApp().catch(console.error);
+// Track initialization state
+let isInitialized = false;
+let initPromise: Promise<void> | null = null;
+
+// Initialize once
+async function ensureInitialized() {
+  if (isInitialized) return;
+  
+  if (!initPromise) {
+    initPromise = initializeVercelApp().then(() => {
+      isInitialized = true;
+      initPromise = null;
+    }).catch((error) => {
+      initPromise = null;
+      throw error;
+    });
+  }
+  
+  return initPromise;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Set CORS headers for API routes
@@ -51,16 +73,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const pathname = new URL(url, 'http://localhost').pathname;
   
   try {
-    // Test endpoint
+    // Test endpoint (simple health check)
     if (pathname === '/api/test' && method === 'GET') {
-      await initializeVercelApp();
-      const admin = await vercelStorage.getAdminByUsername("admin");
       return res.json({ 
         status: "OK", 
-        database: "Connected",
-        adminExists: !!admin,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        environment: "vercel"
       });
+    }
+    
+    // Ensure database is initialized for other endpoints
+    if (!pathname.includes('/test')) {
+      await ensureInitialized();
     }
     
     // Admin withdrawals

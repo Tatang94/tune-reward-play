@@ -40,7 +40,7 @@ export function AdminMusicManager() {
     queryKey: ['/api/admin/featured-songs'],
   });
 
-  const featuredSongs = featuredData?.songs || [];
+  const featuredSongs = (featuredData as { songs?: FeaturedSong[] })?.songs || [];
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -49,12 +49,15 @@ export function AdminMusicManager() {
     try {
       const response = await fetch(`/api/ytmusic/search?q=${encodeURIComponent(searchQuery)}`);
       const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
       setSearchResults(data.songs || []);
     } catch (error) {
       console.error('Search error:', error);
       toast({
         title: 'Error',
-        description: 'Gagal mencari lagu',
+        description: 'Gagal mencari lagu. Pastikan koneksi internet stabil.',
         variant: 'destructive',
       });
     } finally {
