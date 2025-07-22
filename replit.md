@@ -4,6 +4,10 @@
 A music streaming reward application that allows users to listen to music and earn rewards. Users can discover trending songs, play music, and accumulate earnings that can be withdrawn through an admin dashboard.
 
 ## Recent Changes
+- **July 22, 2025**: Simplifikasi Admin Route - Hanya /monk
+  - Menghapus route /admin, sekarang admin panel hanya bisa diakses via /monk
+  - Perubahan diterapkan di kedua environment: Replit dan Vercel
+  - URL admin panel yang lebih unik dan mudah diingat
 - **July 22, 2025**: Update Reward System - Rp 0.5 per 30 detik
   - Mengubah nilai reward dari Rp 1 menjadi Rp 0.5 per 30 detik sesuai permintaan user
   - Format display reward menggunakan 1 desimal (toFixed(1)) untuk menampilkan nilai pecahan

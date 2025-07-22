@@ -16,7 +16,6 @@ const App = () => (
       <Router>
         <Switch>
           <Route path="/" component={Index} />
-          <Route path="/admin" component={Admin} />
           <Route path="/monk" component={Admin} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route component={NotFound} />
