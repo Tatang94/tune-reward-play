@@ -17,12 +17,14 @@ interface SimpleAudioPlayerProps {
   currentSong: Song | null;
   onSongComplete?: () => void;
   onEarningsUpdate?: (newBalance: number) => void;
+  onNextSong?: () => void;
 }
 
 export const SimpleAudioPlayer = ({ 
   currentSong, 
   onSongComplete, 
-  onEarningsUpdate 
+  onEarningsUpdate,
+  onNextSong 
 }: SimpleAudioPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -131,6 +133,15 @@ export const SimpleAudioPlayer = ({
             setIsPlaying(true);
           } else if (event.data === window.YT.PlayerState.PAUSED) {
             setIsPlaying(false);
+          } else if (event.data === window.YT.PlayerState.ENDED) {
+            // Lagu selesai, beralih ke lagu berikutnya
+            setIsPlaying(false);
+            onSongComplete?.();
+            
+            // Auto-play lagu berikutnya setelah 2 detik
+            setTimeout(() => {
+              onNextSong?.();
+            }, 2000);
           }
         }
       }
@@ -203,6 +214,9 @@ export const SimpleAudioPlayer = ({
                   (+Rp {totalRewards} diterima)
                 </span>
               )}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              ⏭️ Auto-play: Lagu berikutnya akan diputar setelah lagu ini selesai
             </div>
           </div>
         </div>

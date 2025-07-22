@@ -4,6 +4,12 @@
 A music streaming reward application that allows users to listen to music and earn rewards. Users can discover trending songs, play music, and accumulate earnings that can be withdrawn through an admin dashboard.
 
 ## Recent Changes
+- **July 22, 2025**: Fitur Auto-Play - Otomatis Beralih ke Lagu Berikutnya
+  - Implementasi auto-play: lagu berikutnya otomatis diputar setelah lagu selesai
+  - Indikator visual menampilkan "Lagu X dari Y" dan status "Auto-play aktif"
+  - System cycling: kembali ke lagu pertama setelah lagu terakhir selesai
+  - Delay 2 detik antara perpindahan lagu untuk UX yang smooth
+  - Informasi auto-play ditampilkan di player interface
 - **July 22, 2025**: Clean Setup - Hapus Data Demo
   - Aplikasi dimulai dengan data kosong (tanpa lagu demo)
   - Admin harus menambah lagu sendiri melalui panel /monk

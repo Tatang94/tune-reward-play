@@ -12,6 +12,7 @@ const Index = () => {
   const [featuredSongs, setFeaturedSongs] = useState<Song[]>([]);
   const [currentBalance, setCurrentBalance] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentSongIndex, setCurrentSongIndex] = useState(0);
 
   useEffect(() => {
     // Load user balance
@@ -40,8 +41,17 @@ const Index = () => {
   };
 
   const handleSongComplete = () => {
-    // Song completed - user can play again
+    // Song completed - mark for progression
     console.log('Song completed');
+  };
+
+  const handleNextSong = () => {
+    if (featuredSongs.length === 0) return;
+    
+    // Beralih ke lagu berikutnya, atau kembali ke awal jika sudah di akhir
+    const nextIndex = (currentSongIndex + 1) % featuredSongs.length;
+    setCurrentSongIndex(nextIndex);
+    console.log(`Auto-play: Beralih ke lagu ${nextIndex + 1} dari ${featuredSongs.length}`);
   };
 
   const handleEarningsUpdate = (newBalance: number) => {
@@ -97,11 +107,27 @@ const Index = () => {
                 </div>
               </Card>
             ) : (
-              <SimpleAudioPlayer 
-                currentSong={featuredSongs.length > 0 ? featuredSongs[0] : null}
-                onSongComplete={handleSongComplete}
-                onEarningsUpdate={handleEarningsUpdate}
-              />
+              <div className="space-y-4">
+                {featuredSongs.length > 1 && (
+                  <Card className="p-4 bg-card/50 border-border/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Music className="h-4 w-4" />
+                        <span>Lagu {currentSongIndex + 1} dari {featuredSongs.length}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Auto-play aktif
+                      </div>
+                    </div>
+                  </Card>
+                )}
+                <SimpleAudioPlayer 
+                  currentSong={featuredSongs.length > 0 ? featuredSongs[currentSongIndex] : null}
+                  onSongComplete={handleSongComplete}
+                  onEarningsUpdate={handleEarningsUpdate}
+                  onNextSong={handleNextSong}
+                />
+              </div>
             )}
           </TabsContent>
 
