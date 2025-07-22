@@ -117,10 +117,13 @@ export const SimpleAudioPlayer = ({
       videoId: videoId,
       playerVars: {
         autoplay: 0,
-        controls: 1,
+        controls: 0, // Hide YouTube controls
         modestbranding: 1,
         rel: 0,
         showinfo: 0,
+        disablekb: 1, // Disable keyboard controls
+        fs: 0, // Disable fullscreen button
+        iv_load_policy: 3, // Hide annotations
       },
       events: {
         onStateChange: (event: any) => {
