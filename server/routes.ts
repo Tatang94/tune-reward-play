@@ -7,9 +7,6 @@ import fetch from "node-fetch";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize default admin account if it doesn't exist
   await initializeDefaultAdmin();
-  
-  // Initialize default featured songs
-  await initializeDefaultSongs();
 
   // Admin routes - no authentication required
 
@@ -313,43 +310,3 @@ async function initializeDefaultAdmin() {
   }
 }
 
-// Initialize default featured songs
-async function initializeDefaultSongs() {
-  try {
-    const existingSongs = await storage.getFeaturedSongs();
-    if (existingSongs.length === 0) {
-      // Add some popular Indonesian songs as defaults
-      const defaultSongs = [
-        {
-          videoId: "M8RdAJOhTsM",
-          title: "Duka (Duet Version)",
-          artist: "Last Child feat. Giselle",
-          thumbnail: "https://img.youtube.com/vi/M8RdAJOhTsM/maxresdefault.jpg",
-          duration: 240
-        },
-        {
-          videoId: "aF2goCbw6ac",
-          title: "Tak Ingin Usai",
-          artist: "Keisya Levronka",
-          thumbnail: "https://img.youtube.com/vi/aF2goCbw6ac/maxresdefault.jpg",
-          duration: 200
-        },
-        {
-          videoId: "f7MrPx1jpBs",
-          title: "Bertaut",
-          artist: "Nadin Amizah",
-          thumbnail: "https://img.youtube.com/vi/f7MrPx1jpBs/maxresdefault.jpg",
-          duration: 220
-        }
-      ];
-
-      for (const song of defaultSongs) {
-        await storage.addFeaturedSong(song);
-      }
-      
-      console.log("Default featured songs added to admin panel");
-    }
-  } catch (error) {
-    console.error("Failed to initialize default songs:", error);
-  }
-}

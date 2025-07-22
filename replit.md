@@ -4,6 +4,11 @@
 A music streaming reward application that allows users to listen to music and earn rewards. Users can discover trending songs, play music, and accumulate earnings that can be withdrawn through an admin dashboard.
 
 ## Recent Changes
+- **July 22, 2025**: Clean Setup - Hapus Data Demo
+  - Aplikasi dimulai dengan data kosong (tanpa lagu demo)
+  - Admin harus menambah lagu sendiri melalui panel /monk
+  - Interface memberikan petunjuk jelas untuk admin menambah musik
+  - Setup bersih sesuai permintaan user
 - **July 22, 2025**: Update Vercel Configuration - Admin Music Management
   - Memperbarui konfigurasi Vercel dengan fitur admin pengelolaan lagu lengkap
   - Admin dapat mencari lagu dari YouTube dan menambahkan ke daftar featured
