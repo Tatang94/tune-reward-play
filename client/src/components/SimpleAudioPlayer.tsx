@@ -60,16 +60,16 @@ export const SimpleAudioPlayer = ({
               songsPlayed: 0
             });
             
-            const newBalance = userData.balance + 1;
+            const newBalance = userData.balance + 0.5;
             const updatedUser = {
               ...userData,
               balance: newBalance,
-              totalEarnings: userData.totalEarnings + 1,
+              totalEarnings: userData.totalEarnings + 0.5,
             };
             
             setStorageData(StorageKeys.USER_DATA, updatedUser);
             onEarningsUpdate?.(newBalance);
-            setTotalRewards(prev => prev + 1);
+            setTotalRewards(prev => prev + 0.5);
           }
           
           return newTime;
@@ -207,10 +207,10 @@ export const SimpleAudioPlayer = ({
             <h3 className="font-semibold text-lg mb-1">{currentSong.title}</h3>
             <p className="text-muted-foreground mb-2">{currentSong.artist}</p>
             <div className="text-sm text-success font-medium">
-              💰 Reward: Rp 1 per 30 detik
+              💰 Reward: Rp 0.5 per 30 detik
               {totalRewards > 0 && (
                 <span className="ml-2 text-green-600 font-bold">
-                  (+Rp {totalRewards} diterima)
+                  (+Rp {totalRewards.toFixed(1)} diterima)
                 </span>
               )}
             </div>
@@ -254,7 +254,7 @@ export const SimpleAudioPlayer = ({
           <div className="w-full max-w-md text-center">
             <div className="flex justify-between text-sm text-muted-foreground mb-2">
               <span>{formatTime(currentTime)}</span>
-              <span className="text-green-600 font-medium">Rp {totalRewards}</span>
+              <span className="text-green-600 font-medium">Rp {totalRewards.toFixed(1)}</span>
             </div>
             
             {/* Progress bar for next reward */}
@@ -271,7 +271,7 @@ export const SimpleAudioPlayer = ({
             
             {isPlaying && (
               <p className="text-sm text-success mt-2 font-medium">
-                ⏱️ Reward berikutnya dalam {30 - (currentTime % 30)}s | Total: Rp {totalRewards}
+                ⏱️ Reward berikutnya dalam {30 - (currentTime % 30)}s | Total: Rp {totalRewards.toFixed(1)}
               </p>
             )}
             {!isPlaying && hasStartedPlaying && (

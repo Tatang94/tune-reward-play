@@ -73,11 +73,11 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
       songsPlayed: 0
     });
 
-    const newBalance = userData.balance + 5;
+    const newBalance = userData.balance + 0.5;
     const updatedUser = {
       ...userData,
       balance: newBalance,
-      totalEarnings: userData.totalEarnings + 5,
+      totalEarnings: userData.totalEarnings + 0.5,
       songsPlayed: userData.songsPlayed + 1
     };
 
@@ -86,7 +86,7 @@ export function MusicPlayer({ currentSong, onSongComplete, onEarningsUpdate }: M
 
     toast({
       title: "Selamat! 🎉",
-      description: "Anda mendapat Rp 5 karena telah mendengarkan lagu selama 30 detik!",
+      description: "Anda mendapat Rp 0.5 karena telah mendengarkan lagu selama 30 detik!",
       className: "bg-success text-success-foreground"
     });
   };

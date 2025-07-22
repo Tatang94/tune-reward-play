@@ -4,6 +4,10 @@
 A music streaming reward application that allows users to listen to music and earn rewards. Users can discover trending songs, play music, and accumulate earnings that can be withdrawn through an admin dashboard.
 
 ## Recent Changes
+- **July 22, 2025**: Update Reward System - Rp 0.5 per 30 detik
+  - Mengubah nilai reward dari Rp 1 menjadi Rp 0.5 per 30 detik sesuai permintaan user
+  - Format display reward menggunakan 1 desimal (toFixed(1)) untuk menampilkan nilai pecahan
+  - Reward system yang lebih ekonomis dan sustainable
 - **July 22, 2025**: Fitur Auto-Play + Vercel Update - Otomatis Beralih ke Lagu Berikutnya
   - Implementasi auto-play: lagu berikutnya otomatis diputar setelah lagu selesai
   - Indikator visual menampilkan "Lagu X dari Y" dan status "Auto-play aktif"  
