@@ -4,6 +4,12 @@
 A music streaming reward application that allows users to listen to music and earn rewards. Users can discover trending songs, play music, and accumulate earnings that can be withdrawn through an admin dashboard.
 
 ## Recent Changes
+- **July 22, 2025**: Update Vercel Configuration - Admin Music Management
+  - Memperbarui konfigurasi Vercel dengan fitur admin pengelolaan lagu lengkap
+  - Admin dapat mencari lagu dari YouTube dan menambahkan ke daftar featured
+  - Fitur toggle aktif/nonaktif lagu dan hapus lagu dari admin panel
+  - Database storage lengkap untuk featured songs dengan Vercel Postgres
+  - API endpoints untuk search, add, remove, dan toggle status lagu
 - **July 22, 2025**: Migration Complete - Replit Agent to Replit Environment
   - Successfully migrated project from Replit Agent to standard Replit environment
   - All packages installed and configured properly (Node.js, Python dependencies)

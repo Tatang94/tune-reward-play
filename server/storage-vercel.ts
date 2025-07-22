@@ -1,17 +1,51 @@
 import { eq, desc } from "drizzle-orm";
 import { db } from "./db-vercel";
-import { admins, adminSessions, withdrawRequests, featuredSongs } from "@shared/schema";
+import { users, admins, adminSessions, withdrawRequests, adminSettings, featuredSongs } from "@shared/schema";
 import type { 
+  User,
+  InsertUser,
   Admin, 
   InsertAdmin, 
   WithdrawRequest, 
   InsertWithdrawRequest,
+  AdminSettings,
+  InsertAdminSettings,
   FeaturedSong,
   InsertFeaturedSong 
 } from "@shared/schema";
 import crypto from "crypto";
 
 export class VercelStorage {
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user || undefined;
+    } catch (error) {
+      console.error("Error getting user:", error);
+      return undefined;
+    }
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.username, username));
+      return user || undefined;
+    } catch (error) {
+      console.error("Error getting user by username:", error);
+      return undefined;
+    }
+  }
+
+  async createUser(userData: InsertUser): Promise<User> {
+    try {
+      const [user] = await db.insert(users).values(userData).returning();
+      return user;
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw error;
+    }
+  }
   // Admin management
   async getAdminByUsername(username: string): Promise<Admin | null> {
     try {
@@ -180,6 +214,41 @@ export class VercelStorage {
         .where(eq(featuredSongs.id, id));
     } catch (error) {
       console.error("Error toggling featured song status:", error);
+      throw error;
+    }
+  }
+
+  // Admin settings operations
+  async getAdminSetting(key: string): Promise<AdminSettings | undefined> {
+    try {
+      const [setting] = await db.select().from(adminSettings).where(eq(adminSettings.settingKey, key));
+      return setting || undefined;
+    } catch (error) {
+      console.error("Error getting admin setting:", error);
+      return undefined;
+    }
+  }
+
+  async setAdminSetting(key: string, value: string): Promise<void> {
+    try {
+      const existing = await this.getAdminSetting(key);
+      
+      if (existing) {
+        await db
+          .update(adminSettings)
+          .set({ 
+            settingValue: value,
+            updatedAt: new Date()
+          })
+          .where(eq(adminSettings.settingKey, key));
+      } else {
+        await db.insert(adminSettings).values({
+          settingKey: key,
+          settingValue: value,
+        });
+      }
+    } catch (error) {
+      console.error("Error setting admin setting:", error);
       throw error;
     }
   }

@@ -4,7 +4,6 @@ import { initializeVercelDatabase } from "../server/db-vercel";
 import bcrypt from "bcrypt";
 import fetch from "node-fetch";
 
-
 // Initialize Vercel database and default admin account
 async function initializeVercelApp() {
   try {
@@ -33,12 +32,6 @@ async function initializeVercelApp() {
   }
 }
 
-// No authentication required for admin routes in Vercel
-
-// Music service placeholder
-
-
-
 // Initialize on startup
 initializeVercelApp().catch(console.error);
 
@@ -58,7 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const pathname = new URL(url, 'http://localhost').pathname;
   
   try {
-    // Route handling
+    // Test endpoint
     if (pathname === '/api/test' && method === 'GET') {
       await initializeVercelApp();
       const admin = await vercelStorage.getAdminByUsername("admin");
@@ -70,111 +63,69 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
     
-    // Admin routes - no authentication required
-    
+    // Admin withdrawals
     if (pathname === '/api/admin/withdrawals' && method === 'GET') {
-      try {
-        const requests = await vercelStorage.getWithdrawRequests();
-        return res.json({ requests });
-      } catch (error) {
-        return res.status(500).json({ error: "Failed to get withdraw requests" });
-      }
+      const requests = await vercelStorage.getWithdrawRequests();
+      return res.json({ requests });
     }
     
     if (pathname.startsWith('/api/admin/withdrawals/') && method === 'PATCH') {
-      try {
-        const id = pathname.split('/').pop();
-        const { status } = req.body;
+      const id = pathname.split('/').pop();
+      const { status } = req.body;
 
-        if (!id) {
-          return res.status(400).json({ error: "Invalid withdrawal request ID" });
-        }
-
-        if (!["approved", "rejected"].includes(status)) {
-          return res.status(400).json({ error: "Invalid status" });
-        }
-
-        await vercelStorage.updateWithdrawRequestStatus(parseInt(id), status);
-        return res.json({ success: true });
-      } catch (error) {
-        return res.status(500).json({ error: "Failed to update withdraw request" });
+      if (!id || !["approved", "rejected"].includes(status)) {
+        return res.status(400).json({ error: "Invalid request" });
       }
+
+      await vercelStorage.updateWithdrawRequestStatus(parseInt(id), status);
+      return res.json({ success: true });
     }
     
-    // Featured songs endpoints
+    // Featured songs management
     if (pathname === '/api/admin/featured-songs' && method === 'GET') {
-      try {
-        const songs = await vercelStorage.getFeaturedSongs();
-        return res.json({ songs });
-      } catch (error) {
-        return res.status(500).json({ error: "Failed to get featured songs" });
-      }
+      const songs = await vercelStorage.getFeaturedSongs();
+      return res.json({ songs });
     }
     
     if (pathname === '/api/admin/featured-songs' && method === 'POST') {
-      try {
-        const { videoId, title, artist, thumbnail, duration, displayOrder } = req.body;
-        
-        const song = await vercelStorage.addFeaturedSong({
-          videoId,
-          title,
-          artist,
-          thumbnail,
-          duration: duration || 0,
-          displayOrder: displayOrder || 0,
-          isActive: true
-        });
-        
-        return res.json({ song });
-      } catch (error) {
-        return res.status(500).json({ error: "Failed to add featured song" });
+      const { videoId, title, artist, thumbnail, duration } = req.body;
+      
+      if (!videoId || !title || !artist) {
+        return res.status(400).json({ error: "Missing required fields" });
       }
+
+      await vercelStorage.addFeaturedSong({
+        videoId,
+        title,
+        artist,
+        thumbnail: thumbnail || "",
+        duration: duration || 180,
+        displayOrder: 0,
+        isActive: true
+      });
+
+      return res.json({ success: true });
     }
     
-    // Additional featured songs management endpoints
     if (pathname.startsWith('/api/admin/featured-songs/') && method === 'DELETE') {
-      try {
-        const id = pathname.split('/').pop();
-        if (!id) {
-          return res.status(400).json({ error: "Invalid song ID" });
-        }
-        await vercelStorage.removeFeaturedSong(parseInt(id));
-        return res.json({ success: true });
-      } catch (error) {
-        return res.status(500).json({ error: "Failed to remove featured song" });
+      const id = pathname.split('/').pop();
+      if (!id) {
+        return res.status(400).json({ error: "Invalid song ID" });
       }
+      await vercelStorage.removeFeaturedSong(parseInt(id));
+      return res.json({ success: true });
     }
     
-    if (pathname.startsWith('/api/admin/featured-songs/') && !pathname.includes('/status') && method === 'PUT') {
-      try {
-        const id = pathname.split('/').pop();
-        const { displayOrder } = req.body;
-        
-        if (!id) {
-          return res.status(400).json({ error: "Invalid song ID" });
-        }
-        
-        await vercelStorage.updateFeaturedSongOrder(parseInt(id), displayOrder);
-        return res.json({ success: true });
-      } catch (error) {
-        return res.status(500).json({ error: "Failed to update song order" });
-      }
+    if (pathname.includes('/toggle') && method === 'PATCH') {
+      const segments = pathname.split('/');
+      const id = segments[segments.length - 2];
+      const { isActive } = req.body;
+      
+      await vercelStorage.toggleFeaturedSongStatus(parseInt(id), isActive);
+      return res.json({ success: true });
     }
     
-    if (pathname.includes('/status') && method === 'PATCH') {
-      try {
-        const segments = pathname.split('/');
-        const id = segments[segments.length - 2]; // Get ID before '/status'
-        const { isActive } = req.body;
-        
-        await vercelStorage.toggleFeaturedSongStatus(parseInt(id), isActive);
-        return res.json({ success: true });
-      } catch (error) {
-        return res.status(500).json({ error: "Failed to update song status" });
-      }
-    }
-    
-    // YouTube Data API v3 endpoints
+    // YouTube Data API endpoints
     const YOUTUBE_API_KEY = 'AIzaSyCdgmEsPW59-U4bNKj-u-FSHHVaFfFO_VM';
     
     if (pathname === '/api/ytmusic/search' && method === 'GET') {
@@ -185,16 +136,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: "Query parameter required" });
       }
       
-      try {
-        // Search using YouTube Data API v3
-        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=${limit}&q=${encodeURIComponent(query + ' music')}&type=video&key=${YOUTUBE_API_KEY}`;
+      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=${limit}&q=${encodeURIComponent(query + ' music')}&type=video&key=${YOUTUBE_API_KEY}`;
+      
+      const response = await fetch(searchUrl);
+      const data = await response.json() as any;
+      
+      if (!response.ok) {
+        console.error('YouTube API Error:', data);
+        return res.status(500).json({ error: "Failed to search YouTube" });
+      }
+      
+      const songs = data.items?.map((item: any) => ({
+        id: item.id.videoId,
+        title: item.snippet.title,
+        artist: item.snippet.channelTitle,
+        thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || '',
+        duration: 180,
+        audioUrl: `https://www.youtube.com/watch?v=${item.id.videoId}`
+      })) || [];
+      
+      return res.json({ songs });
+    }
+    
+    if (pathname === '/api/ytmusic/charts' && method === 'GET') {
+      // First try to get admin-configured featured songs
+      const featuredSongs = await vercelStorage.getFeaturedSongs();
+      
+      if (featuredSongs && featuredSongs.length > 0) {
+        const songs = featuredSongs.map(song => ({
+          id: song.videoId,
+          title: song.title,
+          artist: song.artist,
+          thumbnail: song.thumbnail,
+          duration: song.duration,
+          audioUrl: `https://www.youtube.com/watch?v=${song.videoId}`
+        }));
+        
+        return res.json({ songs });
+      } else {
+        // Fallback to popular music from YouTube
+        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&q=lagu+indonesia+terpopuler+2025&type=video&order=relevance&key=${YOUTUBE_API_KEY}`;
         
         const response = await fetch(searchUrl);
-        const data = await response.json();
+        const data = await response.json() as any;
         
         if (!response.ok) {
           console.error('YouTube API Error:', data);
-          return res.status(500).json({ error: "Failed to search YouTube" });
+          return res.json({ songs: [] });
         }
         
         const songs = data.items?.map((item: any) => ({
@@ -207,54 +195,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         })) || [];
         
         return res.json({ songs });
-      } catch (error) {
-        console.error("Search error:", error);
-        return res.status(500).json({ error: "Failed to search songs" });
-      }
-    }
-    
-    if (pathname === '/api/ytmusic/charts' && method === 'GET') {
-      try {
-        // First try to get admin-configured featured songs
-        const featuredSongs = await vercelStorage.getFeaturedSongs();
-        
-        if (featuredSongs && featuredSongs.length > 0) {
-          const songs = featuredSongs.map(song => ({
-            id: song.videoId,
-            title: song.title,
-            artist: song.artist,
-            thumbnail: song.thumbnail,
-            duration: song.duration,
-            audioUrl: `https://www.youtube.com/watch?v=${song.videoId}`
-          }));
-          
-          return res.json({ songs });
-        } else {
-          // Fallback to popular music from YouTube
-          const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&q=lagu+indonesia+terpopuler+2025&type=video&order=relevance&key=${YOUTUBE_API_KEY}`;
-          
-          const response = await fetch(searchUrl);
-          const data = await response.json();
-          
-          if (!response.ok) {
-            console.error('YouTube API Error:', data);
-            return res.json({ songs: [] });
-          }
-          
-          const songs = data.items?.map((item: any) => ({
-            id: item.id.videoId,
-            title: item.snippet.title,
-            artist: item.snippet.channelTitle,
-            thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || '',
-            duration: 180,
-            audioUrl: `https://www.youtube.com/watch?v=${item.id.videoId}`
-          })) || [];
-          
-          return res.json({ songs });
-        }
-      } catch (error) {
-        console.error("Charts error:", error);
-        return res.status(500).json({ error: "Failed to get charts" });
       }
     }
     
@@ -264,71 +204,85 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: "Invalid video ID" });
       }
       
-      try {
-        // First check in featured songs
-        const featuredSongs = await vercelStorage.getFeaturedSongs();
-        const featuredSong = featuredSongs.find(s => s.videoId === videoId);
-        
-        if (featuredSong) {
-          return res.json({ 
-            song: {
-              id: featuredSong.videoId,
-              title: featuredSong.title,
-              artist: featuredSong.artist,
-              duration: featuredSong.duration,
-              thumbnail: featuredSong.thumbnail,
-              audioUrl: `https://www.youtube.com/watch?v=${featuredSong.videoId}`
-            }
-          });
-        }
-        
-        // Get from YouTube Data API
-        const videoUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${YOUTUBE_API_KEY}`;
-        
-        const response = await fetch(videoUrl);
-        const data = await response.json();
-        
-        if (!response.ok || !data.items?.length) {
-          return res.json({ 
-            song: {
-              id: videoId,
-              title: "Song Not Found",
-              artist: "Unknown",
-              duration: 180,
-              thumbnail: "",
-              audioUrl: `https://www.youtube.com/watch?v=${videoId}`
-            }
-          });
-        }
-        
-        const item = data.items[0];
+      // First check in featured songs
+      const featuredSongs = await vercelStorage.getFeaturedSongs();
+      const featuredSong = featuredSongs.find(s => s.videoId === videoId);
+      
+      if (featuredSong) {
+        return res.json({ 
+          song: {
+            id: featuredSong.videoId,
+            title: featuredSong.title,
+            artist: featuredSong.artist,
+            duration: featuredSong.duration,
+            thumbnail: featuredSong.thumbnail,
+            audioUrl: `https://www.youtube.com/watch?v=${featuredSong.videoId}`
+          }
+        });
+      }
+      
+      // Get from YouTube Data API
+      const videoUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${YOUTUBE_API_KEY}`;
+      
+      const response = await fetch(videoUrl);
+      const data = await response.json() as any;
+      
+      if (!response.ok || !data.items?.length) {
         return res.json({ 
           song: {
             id: videoId,
-            title: item.snippet.title,
-            artist: item.snippet.channelTitle,
+            title: "Song Not Found",
+            artist: "Unknown",
             duration: 180,
-            thumbnail: item.snippet.thumbnails?.medium?.url || '',
+            thumbnail: "",
             audioUrl: `https://www.youtube.com/watch?v=${videoId}`
           }
         });
-        
-      } catch (error) {
-        console.error("Song details error:", error);
-        return res.status(500).json({ 
-          error: "Failed to get song details", 
-          details: error instanceof Error ? error.message : String(error)
-        });
       }
+      
+      const item = data.items[0] as any;
+      return res.json({ 
+        song: {
+          id: videoId,
+          title: item.snippet.title,
+          artist: item.snippet.channelTitle,
+          duration: 180,
+          thumbnail: item.snippet.thumbnails?.medium?.url || '',
+          audioUrl: `https://www.youtube.com/watch?v=${videoId}`
+        }
+      });
     }
-    
 
-    
-    // Default 404
-    return res.status(404).json({ error: "Endpoint not found" });
+    // User withdraw request endpoint
+    if (pathname === '/api/user/withdraw' && method === 'POST') {
+      const { amount, paymentMethod, paymentDetails } = req.body;
+      
+      if (!amount || !paymentMethod || !paymentDetails) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      if (amount < 10000) {
+        return res.status(400).json({ error: "Minimum withdrawal amount is Rp 10,000" });
+      }
+
+      const request = await vercelStorage.createWithdrawRequest({
+        userId: "1", // Default user for Vercel
+        amount,
+        walletAddress: `${paymentMethod}: ${paymentDetails}`,
+        status: "pending"
+      });
+
+      return res.json({ success: true, request });
+    }
+
+    // 404 for other routes
+    return res.status(404).json({ error: "Route not found" });
     
   } catch (error) {
-    console.error("API Error:", error);
-    return res.status(500).json({ error: "Internal server error", details: error.message });
+    console.error("API Handler Error:", error);
+    return res.status(500).json({ 
+      error: "Internal server error", 
+      details: error instanceof Error ? error.message : String(error)
+    });
   }
 }
