@@ -132,10 +132,10 @@ export const SimpleAudioPlayer = ({
 
         {/* YouTube Player */}
         {videoId && showPlayer && (
-          <div className="relative bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+          <div className="relative bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden max-w-md mx-auto">
             <iframe
               width="100%"
-              height="315"
+              height="200"
               src={`https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&modestbranding=1&rel=0&showinfo=0&start=0`}
               title={currentSong.title}
               frameBorder="0"
@@ -158,16 +158,6 @@ export const SimpleAudioPlayer = ({
               className="h-14 w-14 rounded-full bg-primary hover:bg-primary/90"
             >
               {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
-            </Button>
-            
-            <Button
-              onClick={() => window.open(currentSong.audioUrl, '_blank')}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <ExternalLink className="h-4 w-4" />
-              Buka di YouTube
             </Button>
             
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
