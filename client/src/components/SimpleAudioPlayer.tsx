@@ -184,8 +184,7 @@ export const SimpleAudioPlayer = ({
           </div>
           <div>
             <h3 className="font-semibold text-lg mb-1">Pemutar Musik</h3>
-            <p className="text-muted-foreground">Admin belum mengatur lagu untuk diputar.</p>
-            <p className="text-sm text-muted-foreground mt-2">Akses admin panel di <a href="/monk" className="text-primary hover:underline">/monk</a> untuk menambah musik.</p>
+            <p className="text-muted-foreground">Tidak ada lagu yang tersedia.</p>
           </div>
         </div>
       </Card>
