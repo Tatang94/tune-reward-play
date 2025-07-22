@@ -5,6 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Song } from '@/lib/types';
 import { getStorageData, setStorageData, StorageKeys } from '@/lib/ytmusic-api';
 
+// Declare YouTube Player API types
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
+
 interface SimpleAudioPlayerProps {
   currentSong: Song | null;
   onSongComplete?: () => void;
@@ -21,6 +29,16 @@ export const SimpleAudioPlayer = ({
   const [totalTime] = useState(30); // Fixed 30 seconds for earning
   const [hasStartedPlaying, setHasStartedPlaying] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
+  const playerRef = useRef<any>(null);
+  const playerContainerRef = useRef<string>(`youtube-player-${Date.now()}`);
+  
+  // Extract video ID from YouTube URL
+  const getYouTubeVideoId = (url: string) => {
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+    return match ? match[1] : null;
+  };
+
+  const videoId = currentSong ? getYouTubeVideoId(currentSong.audioUrl) : null;
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -69,15 +87,68 @@ export const SimpleAudioPlayer = ({
     };
   }, [isPlaying, currentSong, totalTime, onSongComplete, onEarningsUpdate, hasStartedPlaying]);
 
+  // Load YouTube Player API
+  useEffect(() => {
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    }
+  }, []);
+
+  // Initialize YouTube Player when showPlayer changes
+  useEffect(() => {
+    if (showPlayer && videoId && window.YT && window.YT.Player) {
+      initializePlayer();
+    }
+  }, [showPlayer, videoId]);
+
+  const initializePlayer = () => {
+    if (!videoId) return;
+    
+    const containerId = playerContainerRef.current;
+    playerRef.current = new window.YT.Player(containerId, {
+      height: '200',
+      width: '100%',
+      videoId: videoId,
+      playerVars: {
+        autoplay: 0,
+        controls: 1,
+        modestbranding: 1,
+        rel: 0,
+        showinfo: 0,
+      },
+      events: {
+        onStateChange: (event: any) => {
+          if (event.data === window.YT.PlayerState.PLAYING) {
+            setIsPlaying(true);
+          } else if (event.data === window.YT.PlayerState.PAUSED) {
+            setIsPlaying(false);
+          }
+        }
+      }
+    });
+  };
+
   const handlePlayPause = () => {
     if (!currentSong) return;
     
-    if (!isPlaying) {
+    if (!hasStartedPlaying) {
       setHasStartedPlaying(true);
       setShowPlayer(true);
-      setIsPlaying(true);
-    } else {
-      setIsPlaying(false);
+      // Player will be initialized by useEffect
+      setTimeout(() => {
+        if (playerRef.current && playerRef.current.playVideo) {
+          playerRef.current.playVideo();
+        }
+      }, 1000);
+    } else if (playerRef.current) {
+      if (isPlaying) {
+        playerRef.current.pauseVideo();
+      } else {
+        playerRef.current.playVideo();
+      }
     }
   };
 
@@ -85,12 +156,6 @@ export const SimpleAudioPlayer = ({
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Extract video ID from YouTube URL
-  const getYouTubeVideoId = (url: string) => {
-    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
-    return match ? match[1] : null;
   };
 
   if (!currentSong) {
@@ -109,7 +174,7 @@ export const SimpleAudioPlayer = ({
     );
   }
 
-  const videoId = getYouTubeVideoId(currentSong.audioUrl);
+
 
   return (
     <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
@@ -133,14 +198,8 @@ export const SimpleAudioPlayer = ({
         {/* YouTube Player */}
         {videoId && showPlayer && (
           <div className="relative bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden max-w-md mx-auto">
-            <iframe
-              width="100%"
-              height="200"
-              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&modestbranding=1&rel=0&showinfo=0&start=0`}
-              title={currentSong.title}
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
+            <div
+              id={playerContainerRef.current}
               className="rounded-lg"
             />
             <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
