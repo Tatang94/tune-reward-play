@@ -1,6 +1,62 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { vercelStorage } from "../server/storage-vercel";
+import { initializeVercelDatabase } from "../server/db-vercel";
+import bcrypt from "bcrypt";
 
 const YOUTUBE_API_KEY = 'AIzaSyCdgmEsPW59-U4bNKj-u-FSHHVaFfFO_VM';
+
+// Track initialization state
+let isInitialized = false;
+let initPromise: Promise<void> | null = null;
+
+// Initialize Vercel database once
+async function ensureInitialized() {
+  if (isInitialized) return;
+  
+  if (!initPromise) {
+    initPromise = initializeVercelApp().then(() => {
+      isInitialized = true;
+      initPromise = null;
+    }).catch((error) => {
+      initPromise = null;
+      console.error("Failed to initialize:", error);
+      // Don't throw here, allow API to continue with limited functionality
+    });
+  }
+  
+  return initPromise;
+}
+
+async function initializeVercelApp() {
+  try {
+    console.log("Initializing Vercel app...");
+    
+    // Initialize database tables
+    await initializeVercelDatabase();
+    console.log("Database tables initialized");
+    
+    // Create default admin account if it doesn't exist
+    try {
+      const existingAdmin = await vercelStorage.getAdminByUsername("admin");
+      if (!existingAdmin) {
+        console.log("Creating default admin account...");
+        const hashedPassword = await bcrypt.hash("audio", 10);
+        await vercelStorage.createAdmin({
+          username: "admin",
+          password: hashedPassword,
+        });
+        console.log("Default admin account created: admin/audio");
+      } else {
+        console.log("Admin account already exists");
+      }
+    } catch (adminError) {
+      console.log("Admin check failed, continuing without admin setup:", adminError);
+    }
+  } catch (error) {
+    console.error("Failed to initialize Vercel app:", error);
+    throw error;
+  }
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Set CORS headers for API routes
@@ -59,13 +115,80 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.json({ songs });
     }
     
-    // Simple featured songs endpoint
+    // Initialize database for endpoints that need it
+    if (!pathname.includes('/test') && !pathname.includes('/ytmusic/')) {
+      await ensureInitialized();
+    }
+
+    // Featured songs management
     if (pathname === '/api/admin/featured-songs' && method === 'GET') {
-      return res.json({ songs: [] }); // Return empty for now
+      const songs = await vercelStorage.getFeaturedSongs();
+      return res.json({ songs });
     }
     
-    // Charts endpoint - fallback to popular Indonesian music
+    if (pathname === '/api/admin/featured-songs' && method === 'POST') {
+      const { videoId, title, artist, thumbnail, duration } = req.body;
+      
+      if (!videoId || !title || !artist) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      await vercelStorage.addFeaturedSong({
+        videoId,
+        title,
+        artist,
+        thumbnail: thumbnail || "",
+        duration: duration || 180,
+        displayOrder: 0,
+        isActive: true
+      });
+
+      return res.json({ success: true });
+    }
+    
+    if (pathname.startsWith('/api/admin/featured-songs/') && method === 'DELETE') {
+      const id = pathname.split('/').pop();
+      if (!id) {
+        return res.status(400).json({ error: "Invalid song ID" });
+      }
+      await vercelStorage.removeFeaturedSong(parseInt(id));
+      return res.json({ success: true });
+    }
+    
+    if (pathname.includes('/toggle') && method === 'PATCH') {
+      const segments = pathname.split('/');
+      const id = segments[segments.length - 2];
+      const { isActive } = req.body;
+      
+      await vercelStorage.toggleFeaturedSongStatus(parseInt(id), isActive);
+      return res.json({ success: true });
+    }
+    
+    // Charts endpoint - use admin featured songs or fallback
     if (pathname === '/api/ytmusic/charts' && method === 'GET') {
+      try {
+        await ensureInitialized();
+        
+        // First try to get admin-configured featured songs
+        const featuredSongs = await vercelStorage.getFeaturedSongs();
+        
+        if (featuredSongs && featuredSongs.length > 0) {
+          const songs = featuredSongs.map(song => ({
+            id: song.videoId,
+            title: song.title,
+            artist: song.artist,
+            thumbnail: song.thumbnail,
+            duration: song.duration,
+            audioUrl: `https://www.youtube.com/watch?v=${song.videoId}`
+          }));
+          
+          return res.json({ songs });
+        }
+      } catch (dbError) {
+        console.error('Database error for charts, using fallback:', dbError);
+      }
+      
+      // Fallback to popular Indonesian music from YouTube
       const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&q=lagu+indonesia+terpopuler+2025&type=video&order=relevance&key=${YOUTUBE_API_KEY}`;
       
       const response = await fetch(searchUrl);
@@ -125,6 +248,66 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           audioUrl: `https://www.youtube.com/watch?v=${videoId}`
         }
       });
+    }
+
+    // Admin withdrawals
+    if (pathname === '/api/admin/withdrawals' && method === 'GET') {
+      const requests = await vercelStorage.getWithdrawRequests();
+      return res.json({ requests });
+    }
+    
+    if (pathname.startsWith('/api/admin/withdrawals/') && method === 'PATCH') {
+      const id = pathname.split('/').pop();
+      const { status } = req.body;
+
+      if (!id || !["approved", "rejected"].includes(status)) {
+        return res.status(400).json({ error: "Invalid request" });
+      }
+
+      await vercelStorage.updateWithdrawRequestStatus(parseInt(id), status);
+      return res.json({ success: true });
+    }
+
+    // User withdraw request endpoint
+    if (pathname === '/api/user/withdraw' && method === 'POST') {
+      const { amount, paymentMethod, paymentDetails } = req.body;
+      
+      if (!amount || !paymentMethod || !paymentDetails) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      if (amount < 10000) {
+        return res.status(400).json({ error: "Minimum withdrawal amount is Rp 10,000" });
+      }
+
+      const request = await vercelStorage.createWithdrawRequest({
+        userId: "1", // Default user for Vercel
+        amount,
+        walletAddress: `${paymentMethod}: ${paymentDetails}`,
+        status: "pending"
+      });
+
+      return res.json({ success: true, request });
+    }
+
+    // Ad settings endpoints
+    if (pathname === '/api/admin/ad-settings' && method === 'GET') {
+      const settings = await vercelStorage.getAdSettings();
+      return res.json({ settings });
+    }
+
+    if (pathname === '/api/admin/ad-settings' && method === 'POST') {
+      const { headerScript, footerScript, bannerScript, popupScript, isEnabled } = req.body;
+      
+      await vercelStorage.saveAdSettings({
+        headerScript: headerScript || '',
+        footerScript: footerScript || '',
+        bannerScript: bannerScript || '',
+        popupScript: popupScript || '',
+        isEnabled: isEnabled || false
+      });
+
+      return res.json({ success: true });
     }
 
     // 404 for other routes
