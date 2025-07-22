@@ -96,9 +96,7 @@ export function AdminDashboard() {
     }
   };
 
-  const handleBackToHome = () => {
-    window.location.href = '/';
-  };
+
 
   const formatCurrency = (amount: number) => {
     return `Rp ${amount.toLocaleString('id-ID')}`;
@@ -130,54 +128,39 @@ export function AdminDashboard() {
   return (
     <div className="space-y-6">
       {/* Admin Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40 -mx-4 -mt-8 px-4 py-4">
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40 -mx-4 -mt-8 px-4 py-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/20 rounded-lg">
-              <Shield className="h-6 w-6 text-primary" />
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl shadow-sm">
+              <Shield className="h-7 w-7 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">Admin Panel</h1>
+              <h1 className="text-2xl font-bold text-foreground">Panel Admin</h1>
               <p className="text-sm text-muted-foreground">
-                Panel Admin - Akses Langsung
+                Akses Langsung - Kelola MusicReward
               </p>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <Link href="/">
-              <Button variant="outline" size="sm" className="border-border">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Kembali ke Beranda
-              </Button>
-            </Link>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleBackToHome}
-              className="border-border"
-            >
+          <Link href="/">
+            <Button variant="outline" size="sm" className="border-border hover:bg-accent/10">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Kembali
             </Button>
-          </div>
+          </Link>
         </div>
       </header>
 
       {/* Dashboard Content */}
-      <div className="pt-4">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-foreground">Admin Dashboard</h2>
-          <p className="text-muted-foreground">Kelola platform MusicReward</p>
-        </div>
+      <div className="pt-6">
 
         <Tabs defaultValue="withdrawals" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="withdrawals" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-2 bg-card/50 border border-border/50">
+            <TabsTrigger value="withdrawals" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <DollarSign className="h-4 w-4" />
               Penarikan Dana
             </TabsTrigger>
-            <TabsTrigger value="music" className="flex items-center gap-2">
+            <TabsTrigger value="music" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Music className="h-4 w-4" />
               Kelola Musik
             </TabsTrigger>
