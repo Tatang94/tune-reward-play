@@ -9,9 +9,9 @@ import { Song, User } from '@/lib/types';
 import { YTMusicAPI, StorageKeys, getStorageData } from '@/lib/ytmusic-api';
 
 const Index = () => {
-  const [trendingSongs, setTrendingSongs] = useState<Song[]>([]);
+  const [featuredSongs, setFeaturedSongs] = useState<Song[]>([]);
   const [currentBalance, setCurrentBalance] = useState(0);
-
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Load user balance
@@ -23,16 +23,19 @@ const Index = () => {
     });
     setCurrentBalance(userData.balance);
 
-    // Load trending songs
-    loadTrendingSongs();
+    // Load featured songs added by admin
+    loadFeaturedSongs();
   }, []);
 
-  const loadTrendingSongs = async () => {
+  const loadFeaturedSongs = async () => {
     try {
-      const songs = await YTMusicAPI.getTrendingSongs();
-      setTrendingSongs(songs);
+      setIsLoading(true);
+      const songs = await YTMusicAPI.getFeaturedSongs();
+      setFeaturedSongs(songs);
     } catch (error) {
-      console.error('Failed to load trending songs:', error);
+      console.error('Failed to load featured songs:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -86,11 +89,20 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="player" className="mt-6">
-            <SimpleAudioPlayer 
-              currentSong={trendingSongs.length > 0 ? trendingSongs[0] : null}
-              onSongComplete={handleSongComplete}
-              onEarningsUpdate={handleEarningsUpdate}
-            />
+            {isLoading ? (
+              <Card className="p-6 text-center">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-muted-foreground">Memuat lagu...</p>
+                </div>
+              </Card>
+            ) : (
+              <SimpleAudioPlayer 
+                currentSong={featuredSongs.length > 0 ? featuredSongs[0] : null}
+                onSongComplete={handleSongComplete}
+                onEarningsUpdate={handleEarningsUpdate}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="dashboard" className="mt-6">

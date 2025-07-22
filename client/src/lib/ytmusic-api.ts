@@ -73,6 +73,32 @@ export class YTMusicAPI {
       return null;
     }
   }
+
+  // Get featured songs added by admin (untuk user interface)
+  static async getFeaturedSongs(): Promise<Song[]> {
+    try {
+      const response = await fetch('/api/admin/featured-songs');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Convert featured songs to Song format
+      return data.songs.map((song: any) => ({
+        id: song.videoId,
+        title: song.title,
+        artist: song.artist,
+        thumbnail: song.thumbnail || 'https://via.placeholder.com/120x90?text=Music',
+        audioUrl: `https://www.youtube.com/watch?v=${song.videoId}`,
+        duration: song.duration || 180
+      }));
+    } catch (error) {
+      console.error('Error fetching featured songs:', error);
+      return [];
+    }
+  }
 }
 
 // Helper functions for local storage
