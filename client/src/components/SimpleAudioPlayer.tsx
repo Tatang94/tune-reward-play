@@ -26,13 +26,14 @@ export const SimpleAudioPlayer = ({
 }: SimpleAudioPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [totalTime] = useState(30); // Fixed 30 seconds for earning
   const [hasStartedPlaying, setHasStartedPlaying] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
+  const [rewardCounter, setRewardCounter] = useState(0);
+  const [totalRewards, setTotalRewards] = useState(0);
   const playerRef = useRef<any>(null);
   const playerContainerRef = useRef<string>(`youtube-player-${Date.now()}`);
   
-  // Extract video ID from YouTube URL
+  // Extract video ID from YouTube URL for player
   const getYouTubeVideoId = (url: string) => {
     const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
     return match ? match[1] : null;
@@ -46,38 +47,30 @@ export const SimpleAudioPlayer = ({
     if (isPlaying && currentSong && hasStartedPlaying) {
       interval = setInterval(() => {
         setCurrentTime(prev => {
-          if (prev >= totalTime) {
-            // Award earnings after 30 seconds
-            setTimeout(() => {
-              const userData = getStorageData(StorageKeys.USER_DATA, {
-                id: '1',
-                balance: 0,
-                totalEarnings: 0,
-                songsPlayed: 0
-              });
-              
-              const newBalance = userData.balance + 5;
-              const updatedUser = {
-                ...userData,
-                balance: newBalance,
-                totalEarnings: userData.totalEarnings + 5,
-                songsPlayed: userData.songsPlayed + 1
-              };
-              
-              setStorageData(StorageKeys.USER_DATA, updatedUser);
-              onEarningsUpdate?.(newBalance);
-              
-              // Reset player
-              setIsPlaying(false);
-              setCurrentTime(0);
-              setHasStartedPlaying(false);
-              setShowPlayer(false);
-              onSongComplete?.();
-            }, 0);
+          const newTime = prev + 1;
+          
+          // Give reward every 30 seconds
+          if (newTime > 0 && newTime % 30 === 0) {
+            const userData = getStorageData(StorageKeys.USER_DATA, {
+              id: '1',
+              balance: 0,
+              totalEarnings: 0,
+              songsPlayed: 0
+            });
             
-            return 0;
+            const newBalance = userData.balance + 1;
+            const updatedUser = {
+              ...userData,
+              balance: newBalance,
+              totalEarnings: userData.totalEarnings + 1,
+            };
+            
+            setStorageData(StorageKeys.USER_DATA, updatedUser);
+            onEarningsUpdate?.(newBalance);
+            setTotalRewards(prev => prev + 1);
           }
-          return prev + 1;
+          
+          return newTime;
         });
       }, 1000);
     }
@@ -85,7 +78,17 @@ export const SimpleAudioPlayer = ({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isPlaying, currentSong, totalTime, onSongComplete, onEarningsUpdate, hasStartedPlaying]);
+  }, [isPlaying, currentSong, onEarningsUpdate, hasStartedPlaying]);
+
+  // Reset timers when song changes
+  useEffect(() => {
+    setCurrentTime(0);
+    setRewardCounter(0);
+    setTotalRewards(0);
+    setHasStartedPlaying(false);
+    setShowPlayer(false);
+    setIsPlaying(false);
+  }, [currentSong]);
 
   // Load YouTube Player API
   useEffect(() => {
@@ -190,7 +193,12 @@ export const SimpleAudioPlayer = ({
             <h3 className="font-semibold text-lg mb-1">{currentSong.title}</h3>
             <p className="text-muted-foreground mb-2">{currentSong.artist}</p>
             <div className="text-sm text-success font-medium">
-              💰 Reward: Rp 5 setelah 30 detik
+              💰 Reward: Rp 1 per 30 detik
+              {totalRewards > 0 && (
+                <span className="ml-2 text-green-600 font-bold">
+                  (+Rp {totalRewards} diterima)
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -229,21 +237,24 @@ export const SimpleAudioPlayer = ({
           <div className="w-full max-w-md text-center">
             <div className="flex justify-between text-sm text-muted-foreground mb-2">
               <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(totalTime)}</span>
+              <span className="text-green-600 font-medium">Rp {totalRewards}</span>
             </div>
-            <div className="w-full bg-muted rounded-full h-3 border">
+            
+            {/* Progress bar for next reward */}
+            <div className="w-full bg-muted rounded-full h-3 border mb-2">
               <div 
                 className="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full transition-all duration-1000 ease-linear flex items-center justify-end pr-1"
-                style={{ width: `${(currentTime / totalTime) * 100}%` }}
+                style={{ width: `${((currentTime % 30) / 30) * 100}%` }}
               >
                 {currentTime > 0 && (
                   <div className="w-2 h-2 bg-white rounded-full shadow-sm"></div>
                 )}
               </div>
             </div>
+            
             {isPlaying && (
               <p className="text-sm text-success mt-2 font-medium">
-                ⏱️ Mendengarkan untuk mendapat Rp 5... ({totalTime - currentTime}s lagi)
+                ⏱️ Reward berikutnya dalam {30 - (currentTime % 30)}s | Total: Rp {totalRewards}
               </p>
             )}
             {!isPlaying && hasStartedPlaying && (
