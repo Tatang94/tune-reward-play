@@ -108,7 +108,7 @@ export class MemoryStorage implements IStorage {
   // Withdraw request operations
   async getWithdrawRequests(): Promise<WithdrawRequest[]> {
     return [...this.withdrawRequests].sort((a, b) => 
-      a.createdAt!.getTime() - b.createdAt!.getTime()
+      b.createdAt!.getTime() - a.createdAt!.getTime()
     );
   }
 
@@ -127,7 +127,7 @@ export class MemoryStorage implements IStorage {
   async updateWithdrawRequestStatus(id: number, status: string): Promise<void> {
     const request = this.withdrawRequests.find(r => r.id === id);
     if (request) {
-      request.status = status;
+      request.status = status as any;
       request.processedAt = new Date();
     }
   }
@@ -143,22 +143,43 @@ export class MemoryStorage implements IStorage {
       existing.settingValue = value;
       existing.updatedAt = new Date();
     } else {
-      const setting: AdminSettings = {
+      this.adminSettings.push({
         id: this.nextSettingId++,
         settingKey: key,
         settingValue: value,
         createdAt: new Date(),
         updatedAt: new Date(),
-      };
-      this.adminSettings.push(setting);
+      });
     }
+  }
+
+  async getAdSettings(): Promise<any> {
+    const headerScript = this.adminSettings.find(s => s.settingKey === 'headerScript')?.settingValue || '';
+    const footerScript = this.adminSettings.find(s => s.settingKey === 'footerScript')?.settingValue || '';
+    const bannerScript = this.adminSettings.find(s => s.settingKey === 'bannerScript')?.settingValue || '';
+    const popupScript = this.adminSettings.find(s => s.settingKey === 'popupScript')?.settingValue || '';
+    const isEnabled = this.adminSettings.find(s => s.settingKey === 'adsEnabled')?.settingValue === 'true';
+
+    return {
+      headerScript,
+      footerScript,
+      bannerScript,
+      popupScript,
+      isEnabled
+    };
+  }
+
+  async saveAdSettings(settings: any): Promise<void> {
+    await this.setAdminSetting('headerScript', settings.headerScript || '');
+    await this.setAdminSetting('footerScript', settings.footerScript || '');
+    await this.setAdminSetting('bannerScript', settings.bannerScript || '');
+    await this.setAdminSetting('popupScript', settings.popupScript || '');
+    await this.setAdminSetting('adsEnabled', settings.isEnabled ? 'true' : 'false');
   }
 
   // Featured songs operations
   async getFeaturedSongs(): Promise<FeaturedSong[]> {
-    return this.featuredSongs
-      .filter(song => song.isActive)
-      .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+    return [...this.featuredSongs].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
   }
 
   async addFeaturedSong(song: InsertFeaturedSong): Promise<FeaturedSong> {
@@ -194,29 +215,5 @@ export class MemoryStorage implements IStorage {
     if (song) {
       song.isActive = isActive;
     }
-  }
-
-  async getAdSettings(): Promise<any> {
-    const headerScript = this.adminSettings.find(s => s.settingKey === 'headerScript')?.settingValue || '';
-    const footerScript = this.adminSettings.find(s => s.settingKey === 'footerScript')?.settingValue || '';
-    const bannerScript = this.adminSettings.find(s => s.settingKey === 'bannerScript')?.settingValue || '';
-    const popupScript = this.adminSettings.find(s => s.settingKey === 'popupScript')?.settingValue || '';
-    const isEnabled = this.adminSettings.find(s => s.settingKey === 'adsEnabled')?.settingValue === 'true';
-
-    return {
-      headerScript,
-      footerScript,
-      bannerScript,
-      popupScript,
-      isEnabled
-    };
-  }
-
-  async saveAdSettings(settings: any): Promise<void> {
-    await this.setAdminSetting('headerScript', settings.headerScript || '');
-    await this.setAdminSetting('footerScript', settings.footerScript || '');
-    await this.setAdminSetting('bannerScript', settings.bannerScript || '');
-    await this.setAdminSetting('popupScript', settings.popupScript || '');
-    await this.setAdminSetting('adsEnabled', settings.isEnabled ? 'true' : 'false');
   }
 }
